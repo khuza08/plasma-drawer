@@ -26,6 +26,7 @@ import org.kde.plasma.extras as PlasmaExtras
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.private.kicker as Kicker
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 
 import "../code/tools.js" as Tools
 
@@ -105,7 +106,6 @@ Kicker.DashboardWindow {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         LayoutMirroring.enabled: Qt.application.layoutDirection == Qt.RightToLeft
         LayoutMirroring.childrenInherit: true
-        // hoverEnabled: true
 
         ActionMenu {
             id: actionMenu
@@ -260,6 +260,20 @@ Kicker.DashboardWindow {
             }
             width: item ? item.implicitWidth : 0
             focus: true
+
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: LinearGradient {
+                    width: content.width
+                    height: content.height
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.05; color: "white" }
+                        GradientStop { position: 0.95; color: "white" }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                }
+            }
 
             readonly property var item: !searching ? appsGridView : runnerResultsViewLoader.item
 
