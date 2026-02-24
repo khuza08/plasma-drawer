@@ -17,6 +17,7 @@ FocusScope {
 
     width: Kirigami.Units.gridUnit * 20
     height: Kirigami.Units.gridUnit * 60
+    implicitWidth: width
 
     property alias model: runnerSectionsList.model
     property alias currentSectionIndex: runnerSectionsList.currentIndex
@@ -77,7 +78,7 @@ FocusScope {
             clip: true
 
             // TODO - Find a better way to provide scrollbar content height without buffering delegates
-            cacheBuffer: 0
+            cacheBuffer: height * 2
 
             focus: true
             currentIndex: -1
