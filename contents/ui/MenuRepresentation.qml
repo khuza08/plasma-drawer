@@ -278,7 +278,7 @@ Kicker.DashboardWindow {
                 focus: !searching
 
                 iconSize: plasmoid.configuration.appIconSize
-                numberColumns: Math.min(plasmoid.configuration.maxNumberColumns, Math.floor((root.width - Kirigami.Units.largeSpacing * 2) / cellSizeWidth))
+                numberColumns: Math.max(1, Math.min(plasmoid.configuration.maxNumberColumns, Math.floor((root.width - Kirigami.Units.largeSpacing * 2) / cellSizeWidth)))
 
                 model: appsModel
 

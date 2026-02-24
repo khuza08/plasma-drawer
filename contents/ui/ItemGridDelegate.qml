@@ -36,8 +36,12 @@ Item {
     property var iconColorOverride: undefined
     property bool forceSymbolicIcons: false
 
+    property var pagedSourceModel: null
+    property int pagedIndexOffset: 0
+
     readonly property bool isDirectory: model.hasChildren ?? false
-    readonly property var directoryModel: isDirectory ? GridView.view.model.modelForRow(itemIndex) : undefined
+    readonly property int absoluteIndex: itemIndex + pagedIndexOffset
+    readonly property var directoryModel: isDirectory ? (pagedSourceModel || GridView.view.model).modelForRow(absoluteIndex) : undefined
 
     // For this widget, the only favoritable actions should be system actions
     readonly property bool isSystemAction: (model.favoriteId 

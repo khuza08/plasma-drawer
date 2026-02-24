@@ -4,6 +4,7 @@ import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.kquickcontrolsaddons
 import org.kde.kirigami as Kirigami
+import org.kde.kitemmodels as KItemModels
 
 FocusScope {
     id: appsGrid
@@ -15,38 +16,51 @@ FocusScope {
 
     property int iconSize: Kirigami.Units.iconSizes.huge
     
-    // TODO - polish cell sizes for different resolutions
-    readonly property int cellSizeWidth: (iconSize * 1.5) + Kirigami.Units.gridUnit
-                                + (2 * Kirigami.Units.smallSpacing)
-                                + (2 * Math.max(highlightItemSvg.margins.top + highlightItemSvg.margins.bottom,
-                                                highlightItemSvg.margins.left + highlightItemSvg.margins.right))
-    readonly property int minCellSizeHeight: (cellSizeWidth - (iconSize * .33))
+    readonly property int cellSizeWidth: iconSize * 2.5
+    readonly property int minCellSizeHeight: iconSize * 2.0
     // cellSizeHeight grows to match the appsGrid height if there is some space left at the bottom
-    readonly property int cellSizeHeight: minCellSizeHeight + ((height % minCellSizeHeight) / Math.floor(height / minCellSizeHeight))
+    readonly property int cellSizeHeight: {
+        let rows = Math.floor(height / minCellSizeHeight);
+        if (rows > 0) {
+            return minCellSizeHeight + ((height % minCellSizeHeight) / rows);
+        }
+        return minCellSizeHeight;
+    }
 
-    property int numberColumns:  5
-    property int numberRows:  Math.floor(height / cellSizeHeight)
+    property int numberColumns: 5
+    property int numberRows: Math.max(1, Math.floor(height / cellSizeHeight))
+
+    readonly property int itemsPerPage: Math.max(1, numberColumns * numberRows)
+    readonly property int totalPages: Math.max(1, Math.ceil((currentModel ? currentModel.count : 0) / itemsPerPage))
 
     required property var model
 
-    readonly property var currentItemGrid: stackView.currentItem
-    readonly property var currentModel: currentItemGrid ? currentItemGrid.model : null //modelStack[modelStackLength - 1]
+    readonly property var currentItemGrid: (stackView.currentItem && "viewSwipeView" in stackView.currentItem) ? stackView.currentItem.viewSwipeView.currentItem : null
+    readonly property var currentModel: appsGrid.model
 
     readonly property bool isAtRoot: stackView.depth <= 1
 
-    implicitWidth: currentItemGrid.implicitWidth
-    implicitHeight: currentItemGrid.implicitHeight
+    implicitWidth: numberColumns * cellSizeWidth
+    implicitHeight: numberRows * cellSizeHeight
 
     function tryEnterDirectory(directoryIndex) {
+        console.log("PlasmaDrawer - AppsGridView: tryEnterDirectory called with index:", directoryIndex);
         let dir = currentModel.modelForRow(directoryIndex);
-        if (dir && dir.hasChildren && currentItemGrid) {
-            let origin = Qt.point(0, 0);
-            let item = currentItemGrid.itemAtIndex(directoryIndex);
-            if (item) {
-                origin = Qt.point(  (item.x + (cellSizeWidth / 2)) - (currentItemGrid.width / 2), 
-                                    (item.y + (cellSizeHeight / 2)) - (currentItemGrid.height / 2) - currentItemGrid.contentY )
+        if (dir && dir.hasChildren) {
+            console.log("PlasmaDrawer - AppsGridView: folder model found, entering...");
+            if (currentItemGrid) {
+                let origin = Qt.point(0, 0);
+                let item = currentItemGrid.itemAtIndex(directoryIndex % itemsPerPage);
+                if (item) {
+                    origin = Qt.point(  (item.x + (cellSizeWidth / 2)) - (currentItemGrid.width / 2), 
+                                        (item.y + (cellSizeHeight / 2)) - (currentItemGrid.height / 2) - currentItemGrid.contentY )
+                }
+                stackView.push(pagedGridView, {model: dir, origin: origin});
+            } else {
+                console.warn("PlasmaDrawer - AppsGridView: currentItemGrid is null!");
             }
-            stackView.push(directoryView, {model: dir, origin: origin});
+        } else {
+            console.log("PlasmaDrawer - AppsGridView: not a folder or no children at index:", directoryIndex);
         }
     }
 
@@ -81,67 +95,160 @@ FocusScope {
         }
     }
 
-    // ActionMenu {
-    //     id: actionMenu
-    //     onActionClicked: visualParent.actionTriggered(actionId, actionArgument)
-    //     onClosed: {
-    //         currentItemGrid.currentIndex = -1;
-    //     }
-    // }
-
-    // I believe StackView requires that the component be defined this way
+    // Root Paging Component
     Component {
-        id: directoryView
-        ItemGridView {
+        id: pagedGridView
+        
+        FocusScope {
+            id: pagedViewRoot
+            anchors.fill: parent
+            property var model: appsGrid.model
+            property alias viewSwipeView: viewSwipeView
             property var origin: Qt.point(0, 0)
-
-            // width: appsGrid.numberColumns * cellSizeWidth
-            // height: appsGrid.numberRows * cellSizeHeight
-            numberColumns: appsGrid.numberColumns
-            maxVisibleRows: appsGrid.numberRows
-
-            cellWidth:  cellSizeWidth
-            cellHeight: cellSizeHeight
-            iconSize: appsGrid.iconSize
-
-            model: appsGrid.model
+            focus: true
             
-            dragEnabled: false
-            hoverEnabled: true
-            layer.enabled: true
-
-            onKeyNavUp: {
-                currentIndex = -1;
-                appsGrid.keyNavUp();
-            }
-            onKeyNavDown: {
-                currentIndex = -1;
-                appsGrid.keyNavDown();
+            readonly property int pageItemsCount: Math.max(1, appsGrid.numberColumns * appsGrid.numberRows)
+            readonly property int pageTotalCount: {
+                let count = (model ? model.count : 0);
+                return Math.max(1, Math.ceil(count / pageItemsCount));
             }
 
-            Component.onCompleted: {
-                keyNavLeft.connect(appsGrid.keyNavLeft);
-                keyNavRight.connect(appsGrid.keyNavRight);
+            SwipeView {
+                id: viewSwipeView
+                anchors.fill: parent
+                clip: true
+                focus: true
+                interactive: true
+                
+                Keys.onLeftPressed: (event) => {
+                    if (currentIndex > 0) {
+                        decrementCurrentIndex();
+                        event.accepted = true;
+                    }
+                }
+                Keys.onRightPressed: (event) => {
+                    if (currentIndex < count - 1) {
+                        incrementCurrentIndex();
+                        event.accepted = true;
+                    }
+                }
+
+                onCurrentIndexChanged: {
+                    console.log("PlasmaDrawer - AppsGridView: SwipeView page changed to:", currentIndex);
+                    if (currentItem) {
+                        console.log("PlasmaDrawer - AppsGridView: Forcing active focus on new page");
+                        currentItem.forceActiveFocus();
+                        if (currentItem.currentIndex === -1) {
+                            currentItem.currentIndex = 0;
+                        }
+                    } else {
+                        console.warn("PlasmaDrawer - AppsGridView: currentItem is null after page change!");
+                    }
+                }
+
+                Repeater {
+                    model: pagedViewRoot.pageTotalCount
+                    
+                    ItemGridView {
+                        id: pagedGrid
+                        width: viewSwipeView.width
+                        height: viewSwipeView.height
+                        focus: true
+                        
+                        property int pageIndex: index
+                        
+                        numberColumns: appsGrid.numberColumns
+                        maxVisibleRows: appsGrid.numberRows
+
+                        cellWidth:  cellSizeWidth
+                        cellHeight: cellSizeHeight
+                        iconSize: appsGrid.iconSize
+
+                        // Robust Paged Indexing
+                        sourceModel: pagedViewRoot.model
+                        indexOffset: pageIndex * pagedViewRoot.pageItemsCount
+                        pageItemsCount: pagedViewRoot.pageItemsCount
+
+                        model: KItemModels.KSortFilterProxyModel {
+                            sourceModel: pagedViewRoot.model
+                            filterRowCallback: (sourceRow, sourceParent) => {
+                                return sourceRow >= (pageIndex * pagedViewRoot.pageItemsCount) && 
+                                       sourceRow < ((pageIndex + 1) * pagedViewRoot.pageItemsCount);
+                            }
+                        }
+                        
+                        dragEnabled: false
+                        hoverEnabled: true
+                        
+                        onKeyNavUp: appsGrid.keyNavUp()
+                        onKeyNavDown: appsGrid.keyNavDown()
+                        onRequestDirectoryEntry: (absoluteIndex) => appsGrid.tryEnterDirectory(absoluteIndex)
+                        onKeyNavLeft: {
+                            console.log("PlasmaDrawer - AppsGridView: onKeyNavLeft received");
+                            if (viewSwipeView.currentIndex > 0) {
+                                viewSwipeView.decrementCurrentIndex();
+                            } else {
+                                appsGrid.keyNavLeft();
+                            }
+                        }
+                        onKeyNavRight: {
+                            console.log("PlasmaDrawer - AppsGridView: onKeyNavRight received");
+                            if (viewSwipeView.currentIndex < viewSwipeView.count - 1) {
+                                viewSwipeView.incrementCurrentIndex();
+                            } else {
+                                appsGrid.keyNavRight();
+                            }
+                        }
+
+                        Component.onCompleted: {
+                            if (pageIndex === viewSwipeView.currentIndex) {
+                                forceActiveFocus();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            PageIndicator {
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: pageTotalCount > 1
+                currentIndex: viewSwipeView.currentIndex
+                count: viewSwipeView.count
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: (mouse) => {
+                        if (count > 0) {
+                            let dotWidth = width / count;
+                            let index = Math.floor(mouse.x / dotWidth);
+                            viewSwipeView.currentIndex = Math.max(0, Math.min(index, count - 1));
+                        }
+                    }
+                }
             }
         }
     }
 
     StackView {
         id: stackView
-        initialItem: directoryView
-
-        implicitWidth: currentItemGrid.implicitWidth
-        implicitHeight: currentItemGrid.implicitHeight
+        initialItem: pagedGridView
+        
+        implicitWidth: appsGrid.implicitWidth
+        implicitHeight: appsGrid.implicitHeight
         anchors.top: parent.top
+        anchors.bottom: parent.bottom 
+        anchors.left: parent.left
+        anchors.right: parent.right
 
         focus: true
 
-        property var transitionDuration: plasmoid.configuration.disableAnimations ? 0 : Kirigami.Units.veryLongDuration / plasmoid.configuration.animationSpeedMultiplier
+        property var transitionDuration: (plasmoid && plasmoid.configuration.disableAnimations) ? 0 : Kirigami.Units.veryLongDuration / (plasmoid ? plasmoid.configuration.animationSpeedMultiplier : 1)
 
-        pushEnter: !plasmoid.configuration.disableAnimations ? pushEnterTransition : instantEnterTransition
-        pushExit:  !plasmoid.configuration.disableAnimations ? pushExitTransition  : instantExitTransition
-        popEnter:  !plasmoid.configuration.disableAnimations ? popEnterTransition  : instantEnterTransition
-        popExit:   !plasmoid.configuration.disableAnimations ? popExitTransition   : instantExitTransition
+        pushEnter: (plasmoid && !plasmoid.configuration.disableAnimations) ? pushEnterTransition : instantEnterTransition
+        pushExit:  (plasmoid && !plasmoid.configuration.disableAnimations) ? pushExitTransition  : instantExitTransition
+        popEnter:  (plasmoid && !plasmoid.configuration.disableAnimations) ? popEnterTransition  : instantEnterTransition
+        popExit:   (plasmoid && !plasmoid.configuration.disableAnimations) ? popExitTransition   : instantExitTransition
 
         replaceEnter: instantEnterTransition
         replaceExit: instantExitTransition
@@ -151,7 +258,7 @@ FocusScope {
 
             NumberAnimation { 
                 property: "x"; 
-                from: pushEnterTransition.ViewTransition.item.origin.x
+                from: pushEnterTransition.ViewTransition.item.origin ? pushEnterTransition.ViewTransition.item.origin.x : 0
                 to: 0
                 duration: stackView.transitionDuration
                 easing.type: Easing.OutCubic
@@ -159,7 +266,7 @@ FocusScope {
 
             NumberAnimation {
                 property: "y"
-                from: pushEnterTransition.ViewTransition.item.origin.y
+                from: pushEnterTransition.ViewTransition.item.origin ? pushEnterTransition.ViewTransition.item.origin.y : 0
                 to: 0
                 duration: stackView.transitionDuration
                 easing.type: Easing.OutCubic
@@ -194,7 +301,7 @@ FocusScope {
             NumberAnimation {
                 property: "x"
                 from: 0
-                to: popExitTransition.ViewTransition.item.origin.x
+                to: popExitTransition.ViewTransition.item.origin ? popExitTransition.ViewTransition.item.origin.x : 0
                 duration: stackView.transitionDuration * 1.5
                 easing.type: Easing.OutCubic
             }
@@ -202,7 +309,7 @@ FocusScope {
             NumberAnimation {
                 property: "y"
                 from: 0
-                to: popExitTransition.ViewTransition.item.origin.y
+                to: popExitTransition.ViewTransition.item.origin ? popExitTransition.ViewTransition.item.origin.y : 0
                 duration: stackView.transitionDuration * 1.5
                 easing.type: Easing.OutCubic
             }

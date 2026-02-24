@@ -34,6 +34,7 @@ FocusScope {
     signal keyNavRight
     signal keyNavUp
     signal keyNavDown
+    signal requestDirectoryEntry(int absoluteIndex)
 
     property bool dragEnabled: true
     property bool showLabels: true
@@ -41,6 +42,10 @@ FocusScope {
     property bool forceSymbolicIcons: false
 
     property int iconSize: Kirigami.Units.iconSizes.large
+
+    property var sourceModel: null
+    property int indexOffset: 0
+    property int pageItemsCount: 0
 
     property int numberColumns: Math.floor(width / cellWidth)
     property int maxVisibleRows: -1
@@ -109,11 +114,20 @@ FocusScope {
     }
 
     function trigger(index) {
-        if (gridView.model.modelForRow(index) != null) {
-            appsGrid.tryEnterDirectory(index);
-        } else if ("trigger" in gridView.model) {
-            gridView.model.trigger(index, "", null);
+        let absoluteIndex = index + indexOffset;
+        console.log("PlasmaDrawer - ItemGridView: trigger called for index:", index, "absolute:", absoluteIndex);
+        let modelToUse = sourceModel || gridView.model;
+        
+        let rowModel = modelToUse.modelForRow(absoluteIndex);
+        if (rowModel != null) {
+            console.log("PlasmaDrawer - ItemGridView: requesting directory entry");
+            requestDirectoryEntry(absoluteIndex);
+        } else if ("trigger" in modelToUse) {
+            console.log("PlasmaDrawer - ItemGridView: triggering app launch");
+            modelToUse.trigger(absoluteIndex, "", null);
             root.toggle();
+        } else {
+            console.warn("PlasmaDrawer - ItemGridView: No trigger or row model at index", absoluteIndex);
         }
     }
 
@@ -168,8 +182,7 @@ FocusScope {
             id: scrollView
             width: (numberColumns * cellWidth) + ScrollBar.vertical.width
             height: parent.height
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.centerIn: parent
 
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             ScrollBar.vertical.interactive: true
@@ -189,8 +202,8 @@ FocusScope {
                 // clip: true
 
                 keyNavigationWraps: false
-                boundsBehavior: Flickable.StopAtBounds
-                snapMode: GridView.SnapToRow
+                interactive: false
+                flickableDirection: Flickable.AutoFlickDirection
                 flickDeceleration: 4000
 
                 highlightFollowsCurrentItem: true
@@ -201,6 +214,8 @@ FocusScope {
                     showLabel: showLabels
                     iconColorOverride: setIconColorBasedOnTheme && drawerTheme.usingCustomTheme ? drawerTheme.iconColor : undefined
                     forceSymbolicIcons: itemGrid.forceSymbolicIcons
+                    pagedSourceModel: itemGrid.sourceModel
+                    pagedIndexOffset: itemGrid.indexOffset
                 }
 
                 onModelChanged: {
@@ -217,6 +232,8 @@ FocusScope {
                         event.accepted = true;
                         moveCurrentIndexLeft();
                     } else {
+                        console.log("PlasmaDrawer - ItemGridView: keyNavLeft signal emitted");
+                        event.accepted = true;
                         itemGrid.keyNavLeft();
                     }
                 }
@@ -233,6 +250,8 @@ FocusScope {
                         event.accepted = true;
                         moveCurrentIndexRight();
                     } else {
+                        console.log("PlasmaDrawer - ItemGridView: keyNavRight signal emitted");
+                        event.accepted = true;
                         itemGrid.keyNavRight();
                     }
                 }
@@ -322,9 +341,13 @@ FocusScope {
                     id: mouseArea
                     anchors.fill: parent
                     anchors.bottomMargin: 2; // Prevents autoscrolling down when mouse at bottom of grid
+                    preventStealing: false // Allow SwipeView/parent to steal horizontal drags
+                    propagateComposedEvents: true
 
                     property int pressX: -1
                     property int pressY: -1
+                    property bool swiping: false
+                    readonly property int swipeThreshold: 40
 
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
 
@@ -345,6 +368,7 @@ FocusScope {
                         updatePositionProperties(mouse.x, mouse.y);
                         pressX = mouse.x;
                         pressY = mouse.y;
+                        swiping = false;
 
                         if (mouse.button == Qt.RightButton) {
                             if (gridView.currentItem && gridView.currentItem.hasActionList) {
@@ -355,7 +379,10 @@ FocusScope {
 
                     onReleased: function (mouse) {
                         mouse.accepted = true;
-                        if (gridView.currentItem) {
+                        if (swiping) {
+                            // Was a swipe, don't trigger a click
+                            swiping = false;
+                        } else if (gridView.currentItem) {
                             itemGrid.trigger(gridView.currentIndex);
                         } else if (!dragHelper.dragging) {
                             // TODO - pass mouse events down to root instead
@@ -395,6 +422,23 @@ FocusScope {
                     }
 
                     onPositionChanged: function (mouse) {
+                        // Detect horizontal swipe and emit nav signal
+                        if (pressX !== -1 && !swiping) {
+                            var dx = mouse.x - pressX;
+                            var dy = mouse.y - pressY;
+                            if (Math.abs(dx) > swipeThreshold && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                                swiping = true;
+                                if (dx < 0) {
+                                    itemGrid.keyNavRight();
+                                } else {
+                                    itemGrid.keyNavLeft();
+                                }
+                                pressX = -1;
+                                pressY = -1;
+                                return;
+                            }
+                        }
+
                         var cPos = mapToItem(gridView.contentItem, mouse.x, mouse.y);
                         var index = gridView.indexAt(cPos.x, cPos.y);
                         
