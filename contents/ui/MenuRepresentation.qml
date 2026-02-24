@@ -41,8 +41,7 @@ Kicker.DashboardWindow {
 
     readonly property int contentMargin: Math.max(Kirigami.Units.iconSizes.huge, height * .12)
 
-    // TODO: remove this and all focus debug rectangles
-    property bool debugFocus: false
+
     
     function colorWithAlpha(color, alpha) {
         return Qt.rgba(color.r, color.g, color.b, alpha)
@@ -240,13 +239,7 @@ Kicker.DashboardWindow {
                 }
             }
 
-            Rectangle {
-                anchors.fill: parent
-                color: "red"
-                opacity: 0.05
-                visible: root.debugFocus && searchField.activeFocus
-                z: 100
-            }
+
         }
 
         Item {
@@ -312,13 +305,7 @@ Kicker.DashboardWindow {
                         iconSize: plasmoid.configuration.searchIconSize
                         shrinkIconsToNative: plasmoid.configuration.adaptiveSearchIconSize
 
-                        Rectangle {
-                            anchors.fill: parent
-                            color: "red"
-                            opacity: 0.05
-                            visible: root.debugFocus && parent.activeFocus
-                            z: 100
-                        }
+
 
                         model: runnerModel
 

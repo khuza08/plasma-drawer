@@ -77,7 +77,7 @@ FocusScope {
             clip: true
 
             // TODO - Find a better way to provide scrollbar content height without buffering delegates
-            cacheBuffer: height * 2
+            cacheBuffer: 0
 
             focus: true
             currentIndex: -1
@@ -214,17 +214,7 @@ FocusScope {
                     }
                 }
 
-                // Rectangle {
-                //     id: sectionSeparator
-                //     anchors.left: runnerName.right
-                //     anchors.right: parent.right
-                //     anchors.verticalCenter: runnerName.verticalCenter
-                //     anchors.leftMargin: Kirigami.Units.smallSpacing * 2
-                //     // width: root.width
-                //     height: 2 * Kirigami.Units.devicePixelRatio
-                //     color: Kirigami.Theme.textColor
-                //     opacity: .05
-                // }
+
 
                 ItemListView {
                     id: matchesList
@@ -270,13 +260,7 @@ FocusScope {
                         keyNavLeft.connect(searchResults.keyNavLeft);
                     }
 
-                    Rectangle {
-                        anchors.fill: parent
-                        color: "blue"
-                        opacity: 0.05
-                        visible: root.debugFocus && parent.activeFocus
-                        z: 100
-                    }
+
                 }
             }
         }

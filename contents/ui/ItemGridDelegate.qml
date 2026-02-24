@@ -58,14 +58,7 @@ Item {
         return isSystemAction ? Tools.createSystemActionActions(i18n, GridView.view.model.favoritesModel, model.favoriteId) : model.actionList;
     }
 
-    // Rectangle{
-    //     id: box
-    //     height: parent.height // - 10
-    //     width:  parent.width  // - 10
-    //     anchors.verticalCenter: parent.verticalCenter
-    //     anchors.horizontalCenter: parent.horizontalCenter
-    //     color: "transparent"
-    // }
+
 
     Rectangle {
         id: displayBox
@@ -134,16 +127,7 @@ Item {
         }
     }
 
-    // Rectangle{
-    //     id: box
-    //     height: parent.height // - 10
-    //     width:  parent.width  // - 10
-    //     anchors.verticalCenter: box.verticalCenter
-    //     anchors.horizontalCenter: parent.horizontalCenter
-    //     color:"red"
-    //     opacity: 0.4
-    //     // color: "transparent"
-    // }
+
 
     PC3.Label {
         id: label
@@ -168,25 +152,5 @@ Item {
         color: drawerTheme.textColor
     }
 
-    // PC3.Label {
-    //     id: folderArrow
 
-    //     visible: isDirectory
-
-    //     anchors {
-    //         top: label.bottom
-    //         topMargin: Kirigami.Units.smallSpacing
-    //         left: parent.left
-    //         leftMargin: highlightItemSvg.margins.left
-    //         right: parent.right
-    //         rightMargin: highlightItemSvg.margins.right
-    //     }
-
-    //     horizontalAlignment: Text.AlignHCenter
-
-    //     elide: Text.ElideRight
-    //     wrapMode: Text.NoWrap
-
-    //     text: "^"
-    // }
 }
