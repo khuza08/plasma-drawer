@@ -251,7 +251,7 @@ Kicker.DashboardWindow {
                 topMargin: contentMargin
                 bottomMargin: contentMargin
             }
-            width: item ? item.implicitWidth : 0
+            width: parent.width * 0.9
             focus: true
 
             readonly property var item: !searching ? appsGridView : runnerResultsViewLoader.item
@@ -264,7 +264,7 @@ Kicker.DashboardWindow {
                 focus: !searching
 
                 iconSize: plasmoid.configuration.appIconSize
-                numberColumns: Math.max(1, Math.min(plasmoid.configuration.maxNumberColumns, Math.floor((root.width - Kirigami.Units.largeSpacing * 2) / cellSizeWidth)))
+                numberColumns: plasmoid.configuration.maxNumberColumns
 
                 model: appsModel
 

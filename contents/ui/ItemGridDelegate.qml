@@ -80,7 +80,7 @@ Item {
         id: displayBox
         width: iconSize
         height: width
-        y: (item.height / 2) - (height / 2) - (showLabel ? label.height / 2 : 0)
+        y: (item.height * 0.4) - (height / 2)
         anchors.horizontalCenter: parent.horizontalCenter
         color: "transparent"
 
@@ -152,7 +152,7 @@ Item {
 
         anchors {
             top: displayBox.bottom
-            topMargin: Kirigami.Units.largeSpacing * 1.5
+            topMargin: Kirigami.Units.smallSpacing
             left: parent.left
             leftMargin: highlightItemSvg.margins.left
             right: parent.right

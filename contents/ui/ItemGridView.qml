@@ -176,7 +176,7 @@ FocusScope {
         PC3.ScrollView {
             id: scrollView
             width: (numberColumns * cellWidth) + ScrollBar.vertical.width
-            height: parent.height
+            height: Math.min(parent.height, numberRows * cellHeight)
             anchors.centerIn: parent
 
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff

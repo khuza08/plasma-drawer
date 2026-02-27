@@ -12,21 +12,13 @@ FocusScope {
     signal keyNavUp
     signal keyNavDown
 
-    property int iconSize: Kirigami.Units.iconSizes.huge
-    
-    readonly property int cellSizeWidth: iconSize * 2.5
-    readonly property int minCellSizeHeight: iconSize * 2.0
-    // cellSizeHeight grows to match the appsGrid height if there is some space left at the bottom
-    readonly property int cellSizeHeight: {
-        let rows = Math.floor(height / minCellSizeHeight);
-        if (rows > 0) {
-            return minCellSizeHeight + ((height % minCellSizeHeight) / rows);
-        }
-        return minCellSizeHeight;
-    }
+    property int numberColumns: 7
+    property int numberRows: 5
 
-    property int numberColumns: 5
-    property int numberRows: Math.max(1, Math.floor(height / cellSizeHeight))
+    readonly property int cellSizeWidth: Math.floor(width / numberColumns)
+    readonly property int cellSizeHeight: Math.floor(height / numberRows)
+
+    property int iconSize: Math.max(Kirigami.Units.iconSizes.small, Math.min(Kirigami.Units.iconSizes.huge, cellSizeHeight * 0.55))
 
     readonly property int itemsPerPage: Math.max(1, numberColumns * numberRows)
     readonly property int totalPages: Math.max(1, Math.ceil((currentModel ? currentModel.count : 0) / itemsPerPage))
