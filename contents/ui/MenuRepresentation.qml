@@ -254,20 +254,6 @@ Kicker.DashboardWindow {
             width: item ? item.implicitWidth : 0
             focus: true
 
-            layer.enabled: true
-            layer.effect: OpacityMask {
-                maskSource: LinearGradient {
-                    width: content.width
-                    height: content.height
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.05; color: "white" }
-                        GradientStop { position: 0.95; color: "white" }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                }
-            }
-
             readonly property var item: !searching ? appsGridView : runnerResultsViewLoader.item
 
             AppsGridView {
