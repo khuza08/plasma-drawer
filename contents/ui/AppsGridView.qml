@@ -9,8 +9,6 @@ import org.kde.kitemmodels as KItemModels
 FocusScope {
     id: appsGrid
 
-    signal keyNavLeft
-    signal keyNavRight
     signal keyNavUp
     signal keyNavDown
 
@@ -44,10 +42,8 @@ FocusScope {
     implicitHeight: numberRows * cellSizeHeight
 
     function tryEnterDirectory(directoryIndex) {
-        console.log("PlasmaDrawer - AppsGridView: tryEnterDirectory called with index:", directoryIndex);
         let dir = currentModel.modelForRow(directoryIndex);
         if (dir && dir.hasChildren) {
-            console.log("PlasmaDrawer - AppsGridView: folder model found, entering...");
             if (currentItemGrid) {
                 let origin = Qt.point(0, 0);
                 let item = currentItemGrid.itemAtIndex(directoryIndex % itemsPerPage);
@@ -56,11 +52,7 @@ FocusScope {
                                         (item.y + (cellSizeHeight / 2)) - (currentItemGrid.height / 2) - currentItemGrid.contentY )
                 }
                 stackView.push(pagedGridView, {model: dir, origin: origin});
-            } else {
-                console.warn("PlasmaDrawer - AppsGridView: currentItemGrid is null!");
             }
-        } else {
-            console.log("PlasmaDrawer - AppsGridView: not a folder or no children at index:", directoryIndex);
         }
     }
 
@@ -134,15 +126,11 @@ FocusScope {
                 }
 
                 onCurrentIndexChanged: {
-                    console.log("PlasmaDrawer - AppsGridView: SwipeView page changed to:", currentIndex);
                     if (currentItem) {
-                        console.log("PlasmaDrawer - AppsGridView: Forcing active focus on new page");
                         currentItem.forceActiveFocus();
                         if (currentItem.currentIndex === -1) {
                             currentItem.currentIndex = 0;
                         }
-                    } else {
-                        console.warn("PlasmaDrawer - AppsGridView: currentItem is null after page change!");
                     }
                 }
 
@@ -183,20 +171,15 @@ FocusScope {
                         onKeyNavUp: appsGrid.keyNavUp()
                         onKeyNavDown: appsGrid.keyNavDown()
                         onRequestDirectoryEntry: (absoluteIndex) => appsGrid.tryEnterDirectory(absoluteIndex)
+                        
                         onKeyNavLeft: {
-                            console.log("PlasmaDrawer - AppsGridView: onKeyNavLeft received");
                             if (viewSwipeView.currentIndex > 0) {
                                 viewSwipeView.decrementCurrentIndex();
-                            } else {
-                                appsGrid.keyNavLeft();
                             }
                         }
                         onKeyNavRight: {
-                            console.log("PlasmaDrawer - AppsGridView: onKeyNavRight received");
                             if (viewSwipeView.currentIndex < viewSwipeView.count - 1) {
                                 viewSwipeView.incrementCurrentIndex();
-                            } else {
-                                appsGrid.keyNavRight();
                             }
                         }
 

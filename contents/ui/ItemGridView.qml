@@ -115,19 +115,14 @@ FocusScope {
 
     function trigger(index) {
         let absoluteIndex = index + indexOffset;
-        console.log("PlasmaDrawer - ItemGridView: trigger called for index:", index, "absolute:", absoluteIndex);
         let modelToUse = sourceModel || gridView.model;
         
         let rowModel = modelToUse.modelForRow(absoluteIndex);
         if (rowModel != null) {
-            console.log("PlasmaDrawer - ItemGridView: requesting directory entry");
             requestDirectoryEntry(absoluteIndex);
         } else if ("trigger" in modelToUse) {
-            console.log("PlasmaDrawer - ItemGridView: triggering app launch");
             modelToUse.trigger(absoluteIndex, "", null);
             root.toggle();
-        } else {
-            console.warn("PlasmaDrawer - ItemGridView: No trigger or row model at index", absoluteIndex);
         }
     }
 
@@ -222,42 +217,20 @@ FocusScope {
                     currentIndex = -1;
                 }
 
-                Keys.onLeftPressed: function (event) {
-                    if (currentIndex == -1) {
-                        currentIndex = 0;
-                        return;
-                    }
-
-                    if (!(event.modifiers & Qt.ControlModifier) && currentCol() != 0) {
-                        event.accepted = true;
-                        moveCurrentIndexLeft();
-                    } else {
-                        console.log("PlasmaDrawer - ItemGridView: keyNavLeft signal emitted");
-                        event.accepted = true;
-                        itemGrid.keyNavLeft();
-                    }
+                Keys.onLeftPressed: (event) => {
+                    event.accepted = true;
+                    itemGrid.keyNavLeft();
                 }
 
-                Keys.onRightPressed: function (event) {
-                    if (currentIndex == -1) {
-                        currentIndex = 0;
-                        return;
-                    }
-
-                    var columns = Math.floor(width / cellWidth);
-
-                    if (!(event.modifiers & Qt.ControlModifier) && currentCol() != columns - 1 && currentIndex != count - 1) {
-                        event.accepted = true;
-                        moveCurrentIndexRight();
-                    } else {
-                        console.log("PlasmaDrawer - ItemGridView: keyNavRight signal emitted");
-                        event.accepted = true;
-                        itemGrid.keyNavRight();
-                    }
+                Keys.onRightPressed: (event) => {
+                    event.accepted = true;
+                    itemGrid.keyNavRight();
                 }
+
 
                 Keys.onUpPressed: function (event) {
                     if (currentIndex == -1) {
+                        event.accepted = true;
                         currentIndex = 0;
                         return;
                     }
@@ -273,6 +246,7 @@ FocusScope {
 
                 Keys.onDownPressed: function (event) {
                     if (currentIndex == -1) {
+                        event.accepted = true;
                         currentIndex = 0;
                         return;
                     }

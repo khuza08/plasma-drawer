@@ -62,6 +62,18 @@ Item {
         return isSystemAction ? Tools.createSystemActionActions(i18n, GridView.view.model.favoritesModel, model.favoriteId) : model.actionList;
     }
 
+    Rectangle {
+        id: selectionHighlight
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.smallSpacing
+        radius: Kirigami.Units.smallSpacing
+        color: Kirigami.Theme.highlightColor
+        opacity: (GridView.isCurrentItem && GridView.view.activeFocus) ? 0.3 : 0
+        visible: GridView.isCurrentItem
+        
+        Behavior on opacity { OpacityAnimator { duration: Kirigami.Units.shortDuration } }
+    }
+
 
 
     Rectangle {
