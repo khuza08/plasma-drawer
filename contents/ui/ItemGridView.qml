@@ -438,6 +438,18 @@ FocusScope {
                         }
                     }
 
+                    onWheel: (wheel) => {
+                        // Support horizontal touchpad scrolling/wheeling to switch pages
+                        if (Math.abs(wheel.angleDelta.x) > 20) {
+                            if (wheel.angleDelta.x > 0) {
+                                itemGrid.keyNavLeft();
+                            } else {
+                                itemGrid.keyNavRight();
+                            }
+                            wheel.accepted = true;
+                        }
+                    }
+
                     onContainsMouseChanged: {
                         if (!containsMouse) {
                             if (!actionMenu.opened) {
