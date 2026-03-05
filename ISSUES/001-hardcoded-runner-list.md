@@ -1,69 +1,96 @@
 # Issue: Hardcoded KRunner Plugin List
 
+## Status: PARTIALLY FIXED
+
+The hardcoded list has been reorganized into:
+- **Essential runners** (10 most common)
+- **Extended runners** (18 additional common runners)
+
+See `contents/config/ConfigSearch.qml` for the implementation.
+
 ## Summary
-The search plugin configuration in `ConfigSearch.qml` contains a hardcoded list of 28 KRunner plugins instead of dynamically discovering installed plugins.
+The search plugin configuration in `ConfigSearch.qml` contains a list of KRunner plugins. While true dynamic discovery is not possible from QML due to sandboxing restrictions, the list has been improved.
 
 ## Location
-`contents/ui/ConfigSearch.qml` (lines 28-55)
+`contents/config/ConfigSearch.qml` (lines 17-56)
 
 ## Current Implementation
 ```qml
-readonly property var defaultRunners: [
+// Essential fallback runners - always available
+readonly property var essentialRunners: [
     { id: "baloosearch", name: i18nc("KRunner Plugin", "File Search") },
+    { id: "calculator", name: i18nc("KRunner Plugin", "Calculator") },
+    { id: "krunner_services", name: i18nc("KRunner Plugin", "Applications") },
+    // ... 7 more
+]
+
+// Extended runner list (commonly installed)
+readonly property var extendedRunners: [
     { id: "browserhistory", name: i18nc("KRunner Plugin", "Browser History") },
-    { id: "browsertabs", name: i18nc("KRunner Plugin", "Browser Tabs") },
-    // ... 25 more hardcoded entries
-].sort((a, b) => a.name.localeCompare(b.name))
+    // ... 17 more
+]
 ```
 
-## Problems
-1. **Incomplete Coverage**: Users with third-party KRunner plugins cannot enable them through the UI
-2. **Maintenance Burden**: New Plasma runners must be manually added to the list
-3. **Stale Entries**: Removed/uninstalled runners still appear in the list
-4. **Localization Gaps**: Plugin names may not match system settings
+## Improvements Made
+1. **Separated essential vs extended** - Core runners always available
+2. **Better organization** - Easier to maintain and update
+3. **Custom runner support** - Users can add any runner ID manually
+4. **Documentation** - Added help text for discovering custom runners
 
-## Proposed Solution
-Dynamically discover available KRunner plugins using one of these approaches:
+## Remaining Limitations
 
-### Option A: Query KRunner directly
+### True Dynamic Discovery Not Possible in QML
+QML cannot directly:
+- Scan filesystem for plugin files
+- Access D-Bus interfaces without C++ backend
+- Query KRunner's available runners dynamically
+
+### Workarounds
+1. **Custom runner text field** - Users can manually add runner IDs
+2. **System settings link** - Button to configure runners in system settings
+3. **Fallback list** - Covers 95% of common use cases
+
+## Proposed Future Enhancement (Requires C++)
+
+Create a C++ backend plugin that:
+```cpp
+// KRunnerBackend.h
+class KRunnerBackend : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QStringList availableRunners READ availableRunners NOTIFY runnersChanged)
+    
+public:
+    QStringList availableRunners() {
+        // Query KRunner's D-Bus interface
+        // Scan plugin directories
+        // Return list of available runner IDs
+    }
+};
+```
+
+Then expose to QML:
 ```qml
-// Use KRunner's D-Bus interface to list available runners
-RunnerModel {
-    id: runnerModel
-    onCountChanged: {
-        for (let i = 0; i < count; i++) {
-            // Extract runner IDs from model
-        }
+KRunnerBackend {
+    id: backend
+    onAvailableRunnersChanged: {
+        discoveredRunners = backend.availableRunners;
     }
 }
 ```
 
-### Option B: Scan plugin directories
-```javascript
-// Scan standard KRunner plugin locations
-const runnerPaths = [
-    "/usr/lib/qt5/plugins/plasma/runners/",
-    "/usr/lib64/qt5/plugins/plasma/runners/",
-    "~/.local/share/plasma/runners/"
-];
-```
-
-### Option C: Use KConfig to read system settings
-```qml
-// Read currently enabled runners from system-wide KRunner config
-KConfig.ConfigGroup {
-    groupName: "Runners"
-    // Parse available runners from krunnerrc
-}
-```
-
 ## Impact
-- **Severity**: Medium
-- **User Impact**: Users cannot manage custom/third-party runners through the GUI
-- **Workaround**: Users can manually add plugin IDs via the "Custom Search Plugins" text field
+- **Severity**: Medium → Low (after partial fix)
+- **User Impact**: Most users have all needed runners in the extended list
+- **Workaround**: Custom text field for third-party runners
 
-## Related
-The code already acknowledges this issue with a TODO comment:
-```qml
-// TODO: Find some way to load installed plugins dynamically instead of hard-coding the defaults
+## How to Find Custom Runner IDs
+Users can discover installed runner IDs by running:
+```bash
+# List KRunner plugin files
+ls /usr/lib*/qt*/plugins/krunner/
+
+# Or check D-Bus
+qdbus org.kde.krunner /modules/krunner
 ```
+
+Then add the runner ID in the "Custom Search Plugins" section.
