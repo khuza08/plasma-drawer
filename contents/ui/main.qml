@@ -27,6 +27,8 @@ import org.kde.ksvg as KSvg
 import org.kde.plasma.private.kicker as Kicker
 import org.kde.kitemmodels as KItemModels
 
+import "../code/KickerCompat.js" as KickerCompat
+
 PlasmoidItem {
     id: kicker
 
@@ -42,6 +44,20 @@ PlasmoidItem {
     property Item dragSource: null
 
     property alias systemFavoritesModel: systemModel.favoritesModel
+
+    // Runtime Kicker API validation
+    readonly property bool kickerAPIAvailable: KickerCompat.validateKickerAPI(Kicker).success
+    readonly property var kickerValidation: KickerCompat.validateKickerAPI(Kicker)
+
+    Component.onCompleted: {
+        // Log compatibility info on startup
+        KickerCompat.logCompatibilityInfo();
+
+        if (!kickerAPIAvailable) {
+            console.error("[Plasma Drawer] Kicker API validation failed:", kickerValidation.message);
+            console.error("[Plasma Drawer] Some features may not work correctly.");
+        }
+    }
 
     Component {
         id: compactRepresentation
