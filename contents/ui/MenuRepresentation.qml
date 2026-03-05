@@ -31,10 +31,9 @@ import Qt5Compat.GraphicalEffects
 import "../code/tools.js" as Tools
 
 Kicker.DashboardWindow {
-    
+
     id: root
 
-    // keyEventProxy: searchField
     backgroundColor: "transparent"
 
     readonly property bool searching: searchField.text != ""
@@ -42,7 +41,7 @@ Kicker.DashboardWindow {
     readonly property int contentMargin: Math.max(Kirigami.Units.iconSizes.huge, height * .12)
 
 
-    
+
     function colorWithAlpha(color, alpha) {
         return Qt.rgba(color.r, color.g, color.b, alpha)
     }
@@ -86,7 +85,6 @@ Kicker.DashboardWindow {
 
     function reset() {
         searchField.text = "";
-        // appsGridView.returnToRootDirectory(false);
         content.focus = true;
     }
 
@@ -108,7 +106,6 @@ Kicker.DashboardWindow {
 
         ActionMenu {
             id: actionMenu
-            // visualParent: rootMouseArea
             onActionClicked: function (actionId, actionArgument) {
                 var closeRequested = Tools.triggerAction(plasmoid, null, -1, actionId, actionArgument);
                 if (closeRequested) {
@@ -178,7 +175,7 @@ Kicker.DashboardWindow {
             font.pointSize: Kirigami.Theme.defaultFont.pointSize + 1
             horizontalAlignment: TextInput.AlignHCenter
             verticalAlignment: TextInput.AlignVCenter
-            
+
             placeholderText: i18n("Search")
             placeholderTextColor: drawerTheme.softTextColor
 
@@ -216,7 +213,6 @@ Kicker.DashboardWindow {
                     if (!content.item.currentMatch) {
                         content.item.selectFirst();
                     }
-                    //content.item.triggerSelected();
                     return;
                 }
 
@@ -274,7 +270,7 @@ Kicker.DashboardWindow {
 
             Loader {
                 id: runnerResultsViewLoader
-                
+
                 width: Math.min(Kirigami.Units.gridUnit * 32, root.width * 0.33)
                 anchors.horizontalCenter: parent.horizontalCenter
                 height: parent.height
@@ -287,7 +283,7 @@ Kicker.DashboardWindow {
                 sourceComponent: Component {
                     RunnerResultsView {
                         id: runnerResultsView
-                        
+
                         iconSize: plasmoid.configuration.searchIconSize
                         shrinkIconsToNative: plasmoid.configuration.adaptiveSearchIconSize
 
@@ -332,7 +328,7 @@ Kicker.DashboardWindow {
 
         ItemGridView {
             id: systemActionsGrid
-            
+
             model: systemFavoritesModel
 
             visible: count > 0 && plasmoid.configuration.showSystemActions
@@ -348,11 +344,8 @@ Kicker.DashboardWindow {
             iconSize: plasmoid.configuration.systemActionIconSize
             cellWidth: iconSize + (Kirigami.Units.largeSpacing * (showLabels ? 6 : 2))
             cellHeight: cellWidth
-            // height: cellHeight
-            // width: cellWidth * count
             numberColumns: model.count
-            // maxVisibleRows: 1
-            
+
             opacity: 0.9
 
             dragEnabled: true
@@ -379,7 +372,7 @@ Kicker.DashboardWindow {
                 }
             }
         }
- 
+
         Keys.onPressed: function (event) {
             if (searchField.focus || !searchField.visible) {
                 return;

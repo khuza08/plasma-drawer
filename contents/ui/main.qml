@@ -30,10 +30,6 @@ import org.kde.kitemmodels as KItemModels
 PlasmoidItem {
     id: kicker
 
-    // onActiveFocusItemChanged: {
-    //     console.log("activeFocusItem", activeFocusItem);
-    // }
-
     anchors.fill: parent
 
     signal reset
@@ -46,32 +42,6 @@ PlasmoidItem {
     property Item dragSource: null
 
     property alias systemFavoritesModel: systemModel.favoritesModel
-
-    function logModelChildren(model, leadingSpace = 0) {
-        let spacing = Array(leadingSpace + 1).join(" ");
-        // console.log(model.description);
-        // console.log(model.data(model.index(0, 0), 0));
-        
-        var count = ("count" in model ? model.count : 1);
-
-        for (let i = 0; i < count; i++) {
-            let hasChildren = model.data(model.index(i, 0), 0x0107);
-            
-            console.log(spacing + `${model.data(model.index(i, 0), 0)} - `
-                            // + hasChildren ? `(${model.modelForRow(i).count}) - ` : ' - '
-                            + `${model.data(model.index(i, 0), 0x0101)}, `
-                            + `Deco: ${model.data(model.index(0, 0), 1)}, `
-                            + `IsParent: ${model.data(model.index(i, 0), 0x0106)}, `
-                            + `HasChildren: ${hasChildren}, `
-                            + `Group: ${model.data(model.index(i, 0), 0x0102)}`
-                        );
-            
-            if (hasChildren || count > 1) {
-                logModelChildren(model.modelForRow(i), leadingSpace + 2);
-                continue;
-            }
-        }
-    }
 
     Component {
         id: compactRepresentation
@@ -127,7 +97,6 @@ PlasmoidItem {
 
             // Favorites set on MenuRepresentation visible instead to ensure that system actions are
             // available at set time
-            // systemFavoritesModel.favorites = plasmoid.configuration.favoriteSystemActions;
         }
     }
 
