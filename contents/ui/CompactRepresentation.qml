@@ -48,7 +48,7 @@ Item {
     onHeightChanged: updateSizeHints()
 
     function updateSizeHints() {
-        if (useCustomButtonImage && buttonIcon) {
+        if (useCustomButtonImage && buttonIcon && parent && buttonIcon.implicitWidth > 0 && buttonIcon.implicitHeight > 0) {
             if (vertical) {
                 const scaledHeight = Math.floor(parent.width * (buttonIcon.implicitHeight / buttonIcon.implicitWidth));
                 root.Layout.minimumHeight = scaledHeight;

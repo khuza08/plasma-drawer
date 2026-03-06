@@ -85,7 +85,8 @@ FocusScope {
 
         FocusScope {
             id: pagedViewRoot
-            anchors.fill: parent
+            width: parent ? parent.width : 0
+            height: parent ? parent.height : 0
             property var model: appsGrid.model
             property alias viewSwipeView: viewSwipeView
             property var origin: Qt.point(0, 0)
@@ -211,10 +212,12 @@ FocusScope {
 
         implicitWidth: appsGrid.implicitWidth
         implicitHeight: appsGrid.implicitHeight
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors {
+            top: parent.top
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
 
         focus: true
 

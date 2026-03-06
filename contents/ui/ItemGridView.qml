@@ -67,9 +67,8 @@ FocusScope {
 
     property alias populateTransition: gridView.populate
 
-    // ScrollView needs additional space on the right for the scrollbar,
-    // so we add additional padding on the left to center the gridview
-    implicitWidth: scrollView.width + scrollView.ScrollBar.vertical.width
+    // ScrollView needs additional space on the right for the scrollbar
+    implicitWidth: gridView.width + (scrollView.ScrollBar.vertical.visible ? scrollView.ScrollBar.vertical.width : 0)
     implicitHeight: scrollView.height
 
     onFocusChanged: {
@@ -160,10 +159,7 @@ FocusScope {
     DropArea {
         id: dropArea
 
-        width: numberColumns * cellWidth
-        height: (maxVisibleRows == -1 ? numberRows : maxVisibleRows) * cellHeight
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.fill: parent
 
         onDragMove: function (event) {
             var cPos = mapToItem(gridView.contentItem, event.x, event.y);
@@ -176,10 +172,7 @@ FocusScope {
 
         PC3.ScrollView {
             id: scrollView
-            width: (numberColumns * cellWidth) + ScrollBar.vertical.width
-            height: Math.min(parent.height, numberRows * cellHeight)
-            anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.fill: parent
 
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             ScrollBar.vertical.interactive: true
@@ -189,9 +182,8 @@ FocusScope {
             GridView {
                 id: gridView
                 width: numberColumns * cellWidth
-                height: parent.height
-                // anchors.left: parent.left
-                // anchors.verticalCenter: parent.verticalCenter
+                height: Math.max(scrollView.height, numberRows * cellHeight)
+                anchors.horizontalCenter: parent.horizontalCenter
 
                 focus: true
                 visible: model ? model.count > 0 : false
