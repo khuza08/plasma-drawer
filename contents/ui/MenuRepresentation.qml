@@ -97,12 +97,29 @@ Kicker.DashboardWindow {
         actionMenu.open(x, y);
     }
 
-    mainItem: MouseArea {
-        id: rootMouseArea
+    mainItem: Item {
+        id: mainContainer
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
-        LayoutMirroring.enabled: Qt.application.layoutDirection == Qt.RightToLeft
-        LayoutMirroring.childrenInherit: true
+        opacity: 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
+        }
+
+        Component.onCompleted: opacity = 1
+
+        MouseArea {
+            id: rootMouseArea
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            LayoutMirroring.enabled: Qt.application.layoutDirection == Qt.RightToLeft
+            LayoutMirroring.childrenInherit: true
+
+            onReleased: function (mouse) {
+                mouse.accepted = true;
+                root.leave();
+            }
+        }
 
         ActionMenu {
             id: actionMenu
@@ -111,17 +128,6 @@ Kicker.DashboardWindow {
                 if (closeRequested) {
                     root.toggle();
                 }
-            }
-        }
-
-        onReleased: function (mouse) {
-            mouse.accepted = true;
-            if (mouse.button == Qt.RightButton) {
-                if (!searching) {
-                    root.openActionMenu(mouse.x, mouse.y);
-                }
-            } else {
-                root.leave();
             }
         }
 
