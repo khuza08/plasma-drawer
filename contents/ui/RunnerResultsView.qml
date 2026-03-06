@@ -61,9 +61,8 @@ FocusScope {
                             highPriority.push(item)
                         } else if (lowerDisplay.includes(lowerQuery)) {
                             mediumPriority.push(item)
-                        } else {
-                            lowPriority.push(item)
                         }
+                        // Items that don't contain the query in the name are now ignored entirely
                     } else {
                         highPriority.push(item)
                     }
