@@ -287,6 +287,7 @@ Kicker.DashboardWindow {
                 id: runnerResultsViewLoader
 
                 anchors.fill: parent
+                anchors.topMargin: Kirigami.Units.smallSpacing
 
                 active: searching
                 visible: searching
