@@ -1,10 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtCore 6.3
+import QtCore
 import QtQuick.Dialogs
 
-import org.kde.plasma.components as PC3
+import org.kde.plasma.components 3.0 as PC3
 import org.kde.kcmutils as KCM
 import org.kde.config as KConfig
 import org.kde.kirigami as Kirigami
@@ -12,7 +12,7 @@ import org.kde.kirigami as Kirigami
 KCM.SimpleKCM {
     id: root
 
-    property var cfg_searchRunners:  plasmoid.configuration.searchRunners
+    property var cfg_searchRunners:  plasmoid ? plasmoid.configuration.searchRunners : []
 
     // Essential fallback runners - always available
     readonly property var essentialRunners: [
@@ -103,7 +103,10 @@ KCM.SimpleKCM {
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: knownRunners.find((m) => m.id === modelData)?.name ?? modelData
+                    text: {
+                        let runner = knownRunners.find((m) => m.id === modelData);
+                        return runner ? runner.name : modelData;
+                    }
                 }
                 CheckBox {
                     checked: isActive

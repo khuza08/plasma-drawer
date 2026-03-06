@@ -25,11 +25,11 @@ ConfigModel {
     ConfigCategory {
          name: i18n("General")
          icon: "kde"
-         source: "ConfigGeneral.qml"
+         source: "../ui/ConfigGeneral.qml"
     }
     ConfigCategory {
          name: i18n("Search Plugins")
          icon: "search"
-         source: "ConfigSearch.qml"
+         source: "../ui/ConfigSearch.qml"
     }
 }

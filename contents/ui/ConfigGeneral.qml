@@ -20,7 +20,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtCore 6.3
+import QtCore
 import QtQuick.Dialogs
 
 import org.kde.plasma.core as PlasmaCore
@@ -34,28 +34,28 @@ import org.kde.draganddrop as DragDrop
 KCM.SimpleKCM {
     id: configGeneral
 
-    property string cfg_icon:                           plasmoid.configuration.icon
-    property bool cfg_useCustomButtonImage:             plasmoid.configuration.useCustomButtonImage
-    property string cfg_customButtonImage:              plasmoid.configuration.customButtonImage
+    property string cfg_icon:                           plasmoid ? plasmoid.configuration.icon : ""
+    property bool cfg_useCustomButtonImage:             plasmoid ? plasmoid.configuration.useCustomButtonImage : false
+    property string cfg_customButtonImage:              plasmoid ? plasmoid.configuration.customButtonImage : ""
 
     property alias cfg_backgroundType:                  backgroundType.currentIndex
-    property var cfg_customBackgroundColor:             plasmoid.configuration.customBackgroundColor
-    property var cfg_customBackgroundImagePath:         plasmoid.configuration.customBackgroundImagePath
+    property var cfg_customBackgroundColor:             plasmoid ? plasmoid.configuration.customBackgroundColor : "#000000"
+    property var cfg_customBackgroundImagePath:         plasmoid ? plasmoid.configuration.customBackgroundImagePath : ""
     property alias cfg_backgroundOpacity:               backgroundOpacity.value
 
-    property int cfg_appIconSize:                       plasmoid.configuration.appIconSize
+    property int cfg_appIconSize:                       plasmoid ? plasmoid.configuration.appIconSize : 128
     property alias cfg_useDirectoryIcons:               useDirectoryIcons.checked
     property alias cfg_maxNumberColumns:                maxNumberColumns.value
 
     property alias cfg_showSearch:                      showSearch.checked
     property alias cfg_adaptiveSearchIconSize:          adaptSearchIcons.checked
-    property int cfg_searchIconSize:                    plasmoid.configuration.searchIconSize  
+    property int cfg_searchIconSize:                    plasmoid ? plasmoid.configuration.searchIconSize : 48
 
     property alias cfg_showSystemActions:               showSystemActions.checked
     property alias cfg_showSystemActionLabels:          showSystemActionLabels.checked
     property alias cfg_useSymbolicSystemActionIcons:    useSymbolicSystemActionIcons.checked
-    property int cfg_systemActionIconSize:              plasmoid.configuration.systemActionIconSize
-    property var cfg_favoriteSystemActions:             plasmoid.configuration.favoriteSystemActions
+    property int cfg_systemActionIconSize:              plasmoid ? plasmoid.configuration.systemActionIconSize : 48
+    property var cfg_favoriteSystemActions:             plasmoid ? plasmoid.configuration.favoriteSystemActions : []
 
     property alias cfg_disableAnimations:               disableAnimations.checked
     property alias cfg_animationSpeedMultiplier:        animationSpeedMultiplier.value
@@ -123,8 +123,11 @@ KCM.SimpleKCM {
             KSvg.FrameSvgItem {
                 id: previewFrame
                 anchors.centerIn: parent
-                imagePath: plasmoid.location === PlasmaCore.Types.Vertical || plasmoid.location === PlasmaCore.Types.Horizontal
-                        ? "widgets/panel-background" : "widgets/background"
+                imagePath: {
+                    let loc = (typeof plasmoid !== 'undefined') ? plasmoid.location : 0;
+                    return (loc === PlasmaCore.Types.Vertical || loc === PlasmaCore.Types.Horizontal)
+                        ? "widgets/panel-background" : "widgets/background";
+                }
                 width: Kirigami.Units.iconSizes.large + fixedMargins.left + fixedMargins.right
                 height: Kirigami.Units.iconSizes.large + fixedMargins.top + fixedMargins.bottom
 
@@ -191,7 +194,9 @@ KCM.SimpleKCM {
                     cfg_customBackgroundColor = color
                 }
                 Component.onCompleted: {
-                    color = plasmoid.configuration.customBackgroundColor
+                    if (typeof plasmoid !== 'undefined') {
+                        color = plasmoid.configuration.customBackgroundColor
+                    }
                 }
             }
         }
@@ -208,13 +213,18 @@ KCM.SimpleKCM {
                 }
             }
             Label {
-                text: i18n("Path: ") + (cfg_customBackgroundImagePath ?? i18n("None"))
+                text: i18n("Path: ") + (cfg_customBackgroundImagePath ? cfg_customBackgroundImagePath : i18n("None"))
             }
         }
         FileDialog {
             id: backgroundImageFileDialog
             title: i18n("Please choose an image file")
-            currentFolder: StandardPaths.standardLocations(StandardPaths.PicturesLocation)[0]
+            currentFolder: {
+                let locations = StandardPaths.standardLocations(StandardPaths.PicturesLocation);
+                let path = (locations && locations.length > 0) ? locations[0] : StandardPaths.writableLocation(StandardPaths.HomeLocation);
+                // Ensure it's a proper file:// URL for Qt 6 FileDialog
+                return Qt.resolvedUrl("file://" + path);
+            }
             nameFilters: [ i18n("Image files") + " (*.jpg *.jpeg *.png *.bmp)", i18n("All files") + " (*)" ]
             onAccepted: {
                 cfg_customBackgroundImagePath = String(selectedFile).replace("file://", "");
@@ -267,19 +277,24 @@ KCM.SimpleKCM {
             ComboBox {
                 id: appIconSize
                 model: [ 
-                    i18n(Kirigami.Units.iconSizes.medium), 
-                    i18n(Kirigami.Units.iconSizes.large), 
-                    i18n(Kirigami.Units.iconSizes.huge), 
-                    i18n(Kirigami.Units.iconSizes.huge + ((Kirigami.Units.iconSizes.enormous - Kirigami.Units.iconSizes.huge) / 2)),
-                    i18n(Kirigami.Units.iconSizes.enormous),
-                    i18n(Kirigami.Units.iconSizes.enormous + (Kirigami.Units.iconSizes.enormous / 2)),
-                    i18n(Kirigami.Units.iconSizes.enormous * 2)
+                    Kirigami.Units.iconSizes.medium, 
+                    Kirigami.Units.iconSizes.large, 
+                    Kirigami.Units.iconSizes.huge, 
+                    Kirigami.Units.iconSizes.huge + ((Kirigami.Units.iconSizes.enormous - Kirigami.Units.iconSizes.huge) / 2),
+                    Kirigami.Units.iconSizes.enormous,
+                    Kirigami.Units.iconSizes.enormous + (Kirigami.Units.iconSizes.enormous / 2),
+                    Kirigami.Units.iconSizes.enormous * 2
                 ]
                 onActivated: {
                     cfg_appIconSize = parseInt(currentText);
                 }
                 Component.onCompleted: {
-                    currentIndex = model.findIndex((size) => size == cfg_appIconSize);
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i] == cfg_appIconSize) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -317,18 +332,23 @@ KCM.SimpleKCM {
             ComboBox {
                 id: searchIconSize
                 model: [ 
-                    i18n(Kirigami.Units.iconSizes.small),
-                    i18n(Kirigami.Units.iconSizes.smallMedium),
-                    i18n(Kirigami.Units.iconSizes.medium), 
-                    i18n(Kirigami.Units.iconSizes.large), 
-                    i18n(Kirigami.Units.iconSizes.huge), 
-                    i18n(Kirigami.Units.iconSizes.enormous)
+                    Kirigami.Units.iconSizes.small,
+                    Kirigami.Units.iconSizes.smallMedium,
+                    Kirigami.Units.iconSizes.medium, 
+                    Kirigami.Units.iconSizes.large, 
+                    Kirigami.Units.iconSizes.huge, 
+                    Kirigami.Units.iconSizes.enormous
                 ]
                 onActivated: {
                     cfg_searchIconSize = parseInt(currentText);
                 }
                 Component.onCompleted: {
-                    currentIndex = model.findIndex((size) => size == cfg_searchIconSize);
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i] == cfg_searchIconSize) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -358,16 +378,21 @@ KCM.SimpleKCM {
             ComboBox {
                 id: systemActionIconSize
                 model: [ 
-                    i18n(Kirigami.Units.iconSizes.medium), 
-                    i18n(Kirigami.Units.iconSizes.large), 
-                    i18n(Kirigami.Units.iconSizes.huge), 
-                    i18n(Kirigami.Units.iconSizes.huge + ((Kirigami.Units.iconSizes.enormous - Kirigami.Units.iconSizes.huge) / 2))
+                    Kirigami.Units.iconSizes.medium, 
+                    Kirigami.Units.iconSizes.large, 
+                    Kirigami.Units.iconSizes.huge, 
+                    Kirigami.Units.iconSizes.huge + ((Kirigami.Units.iconSizes.enormous - Kirigami.Units.iconSizes.huge) / 2)
                 ]
                 onActivated: {
                     cfg_systemActionIconSize = parseInt(currentText);
                 }
                 Component.onCompleted: {
-                    currentIndex = model.findIndex((size) => size == cfg_systemActionIconSize);
+                    for (let i = 0; i < model.length; i++) {
+                        if (model[i] == cfg_systemActionIconSize) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -433,9 +458,13 @@ KCM.SimpleKCM {
                 text: i18n("Unhide all hidden applications")
                 icon.name: "view-visible"
                 onClicked: {
-                    plasmoid.configuration.hiddenApplications = [""];
+                    if (typeof plasmoid !== 'undefined') {
+                        plasmoid.configuration.hiddenApplications = [""];
+                        if (plasmoid.rootItem && plasmoid.rootItem.appsModel) {
+                            plasmoid.rootItem.appsModel.refresh();
+                        }
+                    }
                     unhideAllAppsPopup.text = i18n("Unhidden!");
-                    plasmoid.rootItem.appsModel.refresh();
                 }
             }
             Label {
