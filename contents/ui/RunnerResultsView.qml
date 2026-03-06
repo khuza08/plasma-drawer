@@ -2,276 +2,239 @@ import QtQuick
 import QtQuick.Controls
 
 import org.kde.plasma.plasmoid
-import org.kde.plasma.components 3.0 as PC3
-import org.kde.plasma.extras as PlasmaExtras
-import org.kde.kquickcontrolsaddons
 import org.kde.kirigami as Kirigami
 
 FocusScope {
     id: searchResults
 
-    signal keyNavLeft
-    signal keyNavRight
     signal keyNavUp
     signal keyNavDown
 
-    width: Kirigami.Units.gridUnit * 20
-    height: Kirigami.Units.gridUnit * 60
-    implicitWidth: width
+    property int numberColumns: 8
+    property int numberRows: 3
 
-    property alias model: runnerSectionsList.model
-    property alias currentSectionIndex: runnerSectionsList.currentIndex
-    property alias currentSection: runnerSectionsList.currentItem
-    readonly property var currentMatch: currentSection ? currentSection.currentItem : null
-    property alias sectionsCount: runnerSectionsList.count
+    readonly property int cellSizeWidth: Math.floor(width / numberColumns)
+    readonly property int cellSizeHeight: Math.floor(height / numberRows)
 
-    property int iconSize: Kirigami.Units.iconSizes.huge
+    property int iconSize: Math.max(Kirigami.Units.iconSizes.small, Math.min(Kirigami.Units.iconSizes.huge, cellSizeHeight * 0.55))
+
+    readonly property int itemsPerPage: Math.max(1, numberColumns * numberRows)
+    readonly property int totalPages: Math.max(1, Math.ceil((allResults.length) / itemsPerPage))
+
+    property var model: null
     property bool shrinkIconsToNative: false
 
-    function selectFirst() {
-        if (sectionsCount > 0) {
-            runnerSectionsList.positionViewAtBeginning();
-            runnerSectionsList.itemAtIndex(0).currentIndex = 0;
-        }
-    }
+    property var allResults: []
+    property int currentPage: 0
 
-    function selectLast() {
-        if (sectionsCount > 0) {
-            runnerSectionsList.positionViewAtEnd();
-            let lastList = runnerSectionsList.itemAtIndex(sectionsCount - 1);
-            if (lastList && lastList.count > 0) {
-                lastList.currentIndex = lastList.lastVisibleIndex;
+    implicitWidth: numberColumns * cellSizeWidth
+    implicitHeight: numberRows * cellSizeHeight
+
+    // Build flat array from all runner results
+    function buildFlatResults() {
+        allResults = []
+        if (!model) {
+            console.log("No model!")
+            return
+        }
+
+        console.log("Building results, model.count:", model.count)
+        for (let i = 0; i < model.count; i++) {
+            let rowModel = model.modelForRow(i)
+            if (rowModel && rowModel.count > 0) {
+                console.log("Row", i, "has", rowModel.count, "items")
+                for (let j = 0; j < rowModel.count; j++) {
+                    allResults.push({
+                        model: rowModel,
+                        index: j
+                    })
+                }
             }
         }
+        console.log("Total results:", allResults.length)
+        currentPage = 0
+        updatePage()
     }
 
-    function removeSelection() {
-        if (currentSection) {
-            currentSection.currentIndex = -1;
-        }
+    onModelChanged: buildFlatResults()
+
+    Connections {
+        target: model
+        function onCountChanged() { buildFlatResults() }
+        function onModelReset() { buildFlatResults() }
     }
 
-    function triggerSelected() {
-        if (currentSection && currentSection.currentIndex != -1) {
-            currentSection.matchesList.trigger(currentSection.currentIndex);
-        }
+    Component.onCompleted: {
+        Qt.callLater(buildFlatResults)
     }
 
-    PC3.ScrollView {
-        id: scrollView
-        // Add spacing on the left by right adjusting the ScrollView, which
-        // centers the runnerSectionsList
-        width: parent.width - ScrollBar.vertical.width
-        height: parent.height
-        anchors.right: parent.right
+    property int currentIndex: -1
 
-        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-        ScrollBar.vertical.interactive: true
+    function updatePage() {
+        pageContainer.children = []
+        pageComponent.createObject(pageContainer, {page: currentPage})
+    }
 
-        focus: true
+    Component {
+        id: pageComponent
 
-        ListView {
-            id: runnerSectionsList
-            
-            // ScrollView automatically sizes its child
-            anchors.verticalCenter: parent.verticalCenter
-            clip: true
+        Item {
+            id: pageItem
+            property int page: 0
+            anchors.fill: parent
 
-            // TODO - Find a better way to provide scrollbar content height without buffering delegates
-            cacheBuffer: height * 2
+            Repeater {
+                model: Math.min(itemsPerPage, allResults.length - (pageItem.page * itemsPerPage))
 
-            focus: true
-            currentIndex: -1
+                Rectangle {
+                    property int itemIndex: index + (pageItem.page * itemsPerPage)
+                    property var itemData: itemIndex < allResults.length ? allResults[itemIndex] : null
 
-            keyNavigationEnabled: false
-            boundsBehavior: Flickable.StopAtBounds
+                    readonly property int row: Math.floor(index / numberColumns)
+                    readonly property int col: index % numberColumns
 
-            highlightFollowsCurrentItem: false
-            highlightMoveDuration: 0
-            highlightResizeDuration: 0
+                    x: col * cellSizeWidth
+                    y: row * cellSizeHeight
+                    width: cellSizeWidth
+                    height: cellSizeHeight
 
-            function moveUp() {
-                if (currentIndex <= 0) {
-                    keyNavUp();
-                    return;
-                }
+                    color: itemIndex === currentIndex ? Kirigami.Theme.highlightColor : "transparent"
+                    opacity: itemIndex === currentIndex ? 0.3 : 1.0
 
-                decrementCurrentIndex();
-                if (currentItem && "count" in currentItem) {
-                    currentItem.currentIndex = currentItem.lastVisibleIndex;
-                }
-            }
+                    QtObject {
+                        id: modelProxy
+                        property var model: itemData ? itemData.model : null
+                        property int index: itemData ? itemData.index : 0
+                        property string display: itemData && itemData.model ? (itemData.model.data(itemData.model.index(itemData.index, 0), "display") || "") : ""
+                        property var decoration: itemData && itemData.model ? itemData.model.data(itemData.model.index(itemData.index, 0), "decoration") : ""
 
-            function moveDown() {
-                if (currentIndex >= count - 1) {
-                    keyNavDown();
-                    return;
-                }
-
-                incrementCurrentIndex();
-                if (currentItem && "count" in currentItem) {
-                    currentItem.currentIndex = 0;
-                }
-            }
-
-            function ensureCurrentMatchInView() {
-                let section = currentItem;
-                if (!section) {
-                    return;
-                }
-                let match = section.currentItem;
-                if (!match) {
-                    return;
-                }
-
-                let headerHeight = section.matchesList.mapToItem(section, 0, 0).y;
-                let matchY = section.y + match.y + headerHeight + Kirigami.Units.smallSpacing; // Match's y relative to runnerSectionsList's start
-                let mappedY = matchY - contentY; // Match's y adjusted to scrolled position
-
-                if (mappedY < 0) {
-                    contentY += mappedY;
-                } else if (mappedY + section.matchesList.rowHeight > height) {
-                    contentY += ((mappedY + section.matchesList.rowHeight) - height);
-                }
-            }
-
-            delegate: FocusScope {
-                width: scrollView.width - scrollView.ScrollBar.vertical.width - Kirigami.Units.smallSpacing
-                height: matchesList.height + sectionHeader.height + Kirigami.Units.largeSpacing * 4
-
-                visible: matchesList?.model?.count > 0 ?? false
-
-                property alias count: matchesList.count
-                property alias expanded: matchesList.expanded
-                property alias expandable: matchesList.expandable
-                property alias lastVisibleIndex: matchesList.lastVisibleIndex
-
-                property alias currentIndex: matchesList.currentIndex
-                property alias currentItem: matchesList.currentItem
-                property alias matchesList: matchesList
-
-                Item {
-                    id: sectionHeader
-                    width: parent.width
-                    height: runnerName.height
-                    anchors.top: parent.top
-
-                    PlasmaExtras.Heading {
-                        id: runnerName
-                        
-                        text: model.display ?? ""
-                        level: 2
-                        color: drawerTheme.textColor
-                    }
-
-                    Button {
-                        id: showMoreButton
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-
-                        visible: matchesList.expandable
-
-                        contentItem: PC3.Label {
-                            id: showMoreLabel
-                            verticalAlignment: Text.AlignBottom
-                            text: matchesList.expanded ? i18n("Show Less") : i18n("Show More")
-                            color: showMoreButton.hovered ? drawerTheme.textColor : drawerTheme.softTextColor
-                            font.underline: showMoreButton.activeFocus
-                        }
-                        background: Item {         
-                            anchors.fill: showMoreLabel
-                            visible: false
-                        }
-
-                        onPressed: {
-                            matchesList.focus = true;
-                            matchesList.expanded = !matchesList.expanded;
-                        }
-
-                        Keys.onPressed: function (event) {
-                            if ((event.key == Qt.Key_Enter || event.key == Qt.Key_Return)) {
-                                // matchesList.focus = true;
-                                matchesList.expanded = !matchesList.expanded;
-                                event.accepted = true;
-                                return;
+                        // Get proper icon name
+                        property string iconName: {
+                            if (!decoration) return ""
+                            let dec = decoration.toString()
+                            // Remove file extensions
+                            dec = dec.replace(/\.(svg|png|svgz)$/, "")
+                            // If it's a file path, extract filename
+                            if (dec.indexOf("/") >= 0) {
+                                dec = dec.substring(dec.lastIndexOf("/") + 1)
                             }
-                            
-                            if (event.key == Qt.Key_Up) {
-                                focus = false;
-                                matchesList.focus = true;
-                                runnerSectionsList.moveUp();
-                                event.accepted = true;
-                                return;
-                            }
-
-                            if (event.key == Qt.Key_Down || event.key == Qt.Key_Left) {
-                                focus = false;
-                                matchesList.focus = true;
-                                matchesList.currentIndex = 0;
-                                event.accepted = true;
-                                return;
-                            }
-                        }
-                    }
-                }
-
-
-
-                ItemListView {
-                    id: matchesList
-                    width: parent.width
-                    anchors.top: sectionHeader.bottom
-                    anchors.topMargin: Kirigami.Units.smallSpacing * 2
-
-                    focus: true
-
-                    iconSize: searchResults.iconSize
-                    shrinkIconsToNative: searchResults.shrinkIconsToNative
-
-                    maxVisibleRows: 5
-
-                    interactive: false
-
-                    // currentIndex: index == 0 ? 0 : -1
-                    onCurrentIndexChanged: {
-                        if (currentIndex != -1) {
-                            runnerSectionsList.currentIndex = index;
-                            runnerSectionsList.ensureCurrentMatchInView();
+                            return dec
                         }
                     }
 
-                    model: runnerSectionsList.model.modelForRow(index)
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: Kirigami.Units.smallSpacing
 
-                    onKeyNavUp: {
-                        runnerSectionsList.moveUp();
+                        Kirigami.Icon {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: iconSize
+                            height: width
+                            source: modelProxy.iconName
+                        }
+
+                        Label {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: cellSizeWidth - Kirigami.Units.smallSpacing * 2
+                            text: modelProxy.display
+                            color: Kirigami.Theme.textColor
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                            fontSizeMode: Text.Fit
+                            minimumPointSize: 8
+                            font.pointSize: 9
+                        }
                     }
 
-                    onKeyNavDown: {
-                        runnerSectionsList.moveDown();
-                    }
-
-                    onKeyNavRight: {
-                        if (showMoreButton.visible) {
-                            showMoreButton.focus = true;
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            currentIndex = itemIndex
+                            if (itemData) {
+                                itemData.model.trigger(itemData.index, "", null)
+                                root.toggle()
+                            }
                         }
                     }
 
                     Component.onCompleted: {
-                        keyNavRight.connect(searchResults.keyNavRight);
-                        keyNavLeft.connect(searchResults.keyNavLeft);
+                        console.log("Item:", itemIndex, "display:", modelProxy.display, "icon:", modelProxy.decoration)
                     }
-
-
                 }
             }
         }
     }
 
-    Keys.onPressed: function (event) {
-        if (event.key == Qt.Key_Up || event.key == Qt.Key_Down || event.key == Qt.Key_Left || event.key == Qt.Key_Right) {
-            if (currentSectionIndex == -1) {
-                event.accepted = true;
-                runnerSectionsList.moveDown();
+    Item {
+        id: pageContainer
+        anchors.fill: parent
+    }
+
+    Row {
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Kirigami.Units.smallSpacing
+
+        Repeater {
+            model: totalPages
+
+            Rectangle {
+                width: 10
+                height: 10
+                radius: 5
+                color: index === currentPage ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
+                opacity: index === currentPage ? 1.0 : 0.3
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        currentPage = index
+                        updatePage()
+                    }
+                }
+            }
+        }
+    }
+
+    onCurrentPageChanged: {
+        updatePage()
+    }
+
+    Keys.onPressed: (event) => {
+        if (event.key === Qt.Key_Up) {
+            if (currentIndex >= numberColumns) {
+                currentIndex -= numberColumns
+            } else if (currentIndex >= 0) {
+                keyNavUp()
+            }
+        } else if (event.key === Qt.Key_Down) {
+            if (currentIndex < allResults.length - numberColumns) {
+                currentIndex += numberColumns
+            } else if (currentIndex >= 0) {
+                keyNavDown()
+            }
+        } else if (event.key === Qt.Key_Left) {
+            if (currentIndex > 0 && currentIndex % numberColumns !== 0) {
+                currentIndex--
+            } else if (currentPage > 0) {
+                currentPage--
+                updatePage()
+            }
+        } else if (event.key === Qt.Key_Right) {
+            if (currentIndex < allResults.length - 1 && (currentIndex + 1) % numberColumns !== 0) {
+                currentIndex++
+            } else if (currentPage < totalPages - 1) {
+                currentPage++
+                updatePage()
+            }
+        } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+            if (currentIndex !== -1 && currentIndex < allResults.length) {
+                let item = allResults[currentIndex]
+                item.model.trigger(item.index, "", null)
+                root.toggle()
             }
         }
     }

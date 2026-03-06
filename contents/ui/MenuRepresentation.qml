@@ -277,9 +277,7 @@ Kicker.DashboardWindow {
             Loader {
                 id: runnerResultsViewLoader
 
-                width: Math.min(Kirigami.Units.gridUnit * 32, root.width * 0.33)
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: parent.height
+                anchors.fill: parent
 
                 active: searching
                 visible: searching
@@ -290,10 +288,11 @@ Kicker.DashboardWindow {
                     RunnerResultsView {
                         id: runnerResultsView
 
+                        numberColumns: plasmoid.configuration.searchMaxColumns
+                        numberRows: plasmoid.configuration.searchMaxRows
+
                         iconSize: plasmoid.configuration.searchIconSize
                         shrinkIconsToNative: plasmoid.configuration.adaptiveSearchIconSize
-
-
 
                         model: runnerModel
 

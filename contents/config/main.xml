@@ -25,7 +25,7 @@
     </entry>
     <entry name="maxNumberColumns" type="Int">
       <label>The max number of columns in the applications grid</label>
-      <default>7</default>
+      <default>8</default>
     </entry>
     <entry name="useDirectoryIcons" type="Bool">
       <label>Determines whether directories should be displayed by their icon rather than a collection of their contents</label>
@@ -102,6 +102,14 @@
     <entry name="adaptiveSearchIconSize" type="Bool">
       <label>Determines whether the icons in the search results list should be shrunk to match their native resolution.</label>
       <default>false</default>
+    </entry>
+    <entry name="searchMaxColumns" type="Int">
+      <label>The max number of columns in the search results grid</label>
+      <default>8</default>
+    </entry>
+    <entry name="searchMaxRows" type="Int">
+      <label>The max number of rows in the search results grid</label>
+      <default>3</default>
     </entry>
     <entry name="searchRunners" type="StringList">
       <label>List of KRunner plugin IDs to use in search</label>
