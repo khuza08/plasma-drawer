@@ -295,6 +295,7 @@ Kicker.DashboardWindow {
                         shrinkIconsToNative: plasmoid.configuration.adaptiveSearchIconSize
 
                         model: runnerModel
+                        query: searchField.text
 
                         onKeyNavUp: content.keyNavUp()
                         onKeyNavDown: content.keyNavDown()

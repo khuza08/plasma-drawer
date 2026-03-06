@@ -22,6 +22,7 @@ FocusScope {
     readonly property int totalPages: Math.max(1, Math.ceil((allResults.length) / itemsPerPage))
 
     property var model: null
+    property string query: ""
     property bool shrinkIconsToNative: false
 
     property var allResults: []
@@ -32,31 +33,51 @@ FocusScope {
 
     // Build flat array from all runner results
     function buildFlatResults() {
-        allResults = []
         if (!model) {
-            console.log("No model!")
+            allResults = []
             return
         }
 
-        console.log("Building results, model.count:", model.count)
+        let highPriority = []
+        let mediumPriority = []
+        let lowPriority = []
+
+        let lowerQuery = query.toLowerCase()
+
         for (let i = 0; i < model.count; i++) {
             let rowModel = model.modelForRow(i)
             if (rowModel && rowModel.count > 0) {
-                console.log("Row", i, "has", rowModel.count, "items")
                 for (let j = 0; j < rowModel.count; j++) {
-                    allResults.push({
+                    let display = rowModel.data(rowModel.index(j, 0), Qt.DisplayRole) || ""
+                    let lowerDisplay = display.toLowerCase()
+                    
+                    let item = {
                         model: rowModel,
                         index: j
-                    })
+                    }
+
+                    if (query !== "") {
+                        if (lowerDisplay.startsWith(lowerQuery)) {
+                            highPriority.push(item)
+                        } else if (lowerDisplay.includes(lowerQuery)) {
+                            mediumPriority.push(item)
+                        } else {
+                            lowPriority.push(item)
+                        }
+                    } else {
+                        highPriority.push(item)
+                    }
                 }
             }
         }
-        console.log("Total results:", allResults.length)
+        
+        allResults = [...highPriority, ...mediumPriority, ...lowPriority]
         currentPage = 0
         updatePage()
     }
 
     onModelChanged: buildFlatResults()
+    onQueryChanged: buildFlatResults()
 
     Connections {
         target: model
