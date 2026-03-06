@@ -98,54 +98,20 @@ FocusScope {
                     width: cellSizeWidth
                     height: cellSizeHeight
 
-                    color: itemIndex === currentIndex ? Kirigami.Theme.highlightColor : "transparent"
-                    opacity: itemIndex === currentIndex ? 0.3 : 1.0
+                    color: "transparent"
 
                     QtObject {
                         id: modelProxy
-                        property var model: itemData ? itemData.model : null
-                        property int index: itemData ? itemData.index : 0
-                        property string display: itemData && itemData.model ? (itemData.model.data(itemData.model.index(itemData.index, 0), "display") || "") : ""
-                        property var decoration: itemData && itemData.model ? itemData.model.data(itemData.model.index(itemData.index, 0), "decoration") : ""
-
-                        // Get proper icon name
-                        property string iconName: {
-                            if (!decoration) return ""
-                            let dec = decoration.toString()
-                            // Remove file extensions
-                            dec = dec.replace(/\.(svg|png|svgz)$/, "")
-                            // If it's a file path, extract filename
-                            if (dec.indexOf("/") >= 0) {
-                                dec = dec.substring(dec.lastIndexOf("/") + 1)
-                            }
-                            return dec
-                        }
+                        property var item: itemData
+                        property string display: itemData && itemData.model ? (itemData.model.data(itemData.model.index(itemData.index, 0), Qt.DisplayRole) || "") : ""
+                        property var decoration: itemData && itemData.model ? itemData.model.data(itemData.model.index(itemData.index, 0), Qt.DecorationRole) : ""
                     }
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: Kirigami.Units.smallSpacing
-
-                        Kirigami.Icon {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: iconSize
-                            height: width
-                            source: modelProxy.iconName
-                        }
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: cellSizeWidth - Kirigami.Units.smallSpacing * 2
-                            text: modelProxy.display
-                            color: Kirigami.Theme.textColor
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.Wrap
-                            maximumLineCount: 2
-                            elide: Text.ElideRight
-                            fontSizeMode: Text.Fit
-                            minimumPointSize: 8
-                            font.pointSize: 9
-                        }
+                    RunnerGridDelegate {
+                        anchors.fill: parent
+                        iconSize: searchResults.iconSize
+                        modelProxy: modelProxy
+                        isCurrentItem: itemIndex === currentIndex
                     }
 
                     MouseArea {

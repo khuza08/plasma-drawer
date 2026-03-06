@@ -7,11 +7,13 @@ import org.kde.kirigami as Kirigami
 Item {
     id: item
 
+    property var modelProxy: null
     property int iconSize: Kirigami.Units.iconSizes.large
     property bool showLabel: true
+    property bool isCurrentItem: false
 
     Accessible.role: Accessible.MenuItem
-    Accessible.name: modelProxy.display
+    Accessible.name: modelProxy ? modelProxy.display : ""
 
     Rectangle {
         id: selectionHighlight
@@ -19,8 +21,8 @@ Item {
         anchors.margins: Kirigami.Units.smallSpacing
         radius: Kirigami.Units.smallSpacing
         color: Kirigami.Theme.highlightColor
-        opacity: GridView.isCurrentItem && GridView.view && GridView.view.activeFocus ? 0.3 : 0
-        visible: GridView.isCurrentItem
+        opacity: isCurrentItem ? 0.3 : 0
+        visible: isCurrentItem
 
         Behavior on opacity { OpacityAnimator { duration: Kirigami.Units.shortDuration } }
     }
@@ -39,7 +41,7 @@ Item {
             width: parent.width
             height: parent.height
             animated: false
-            source: modelProxy.decoration
+            source: modelProxy ? modelProxy.decoration : ""
             roundToIconSize: width > Kirigami.Units.iconSizes.huge ? false : true
         }
     }
@@ -63,7 +65,7 @@ Item {
         elide: Text.ElideRight
         wrapMode: Text.NoWrap
 
-        text: modelProxy.display
+        text: modelProxy ? modelProxy.display : ""
         color: drawerTheme.textColor
 
         fontSizeMode: Text.Fit
