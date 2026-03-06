@@ -12,9 +12,10 @@ FocusScope {
 
     property int numberColumns: 8
     property int numberRows: 3
+    readonly property int referenceRows: 5
 
     readonly property int cellSizeWidth: Math.floor(width / numberColumns)
-    readonly property int cellSizeHeight: Math.floor(height / numberRows)
+    readonly property int cellSizeHeight: Math.floor(height / referenceRows)
 
     property int iconSize: Math.max(Kirigami.Units.iconSizes.small, Math.min(Kirigami.Units.iconSizes.huge, cellSizeHeight * 0.55))
 
@@ -110,6 +111,7 @@ FocusScope {
         cellWidth: cellSizeWidth
         cellHeight: cellSizeHeight
         interactive: false
+        clip: true
         
         // Only show current page
         model: allResults.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
