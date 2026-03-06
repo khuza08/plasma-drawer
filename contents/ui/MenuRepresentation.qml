@@ -84,7 +84,9 @@ Kicker.DashboardWindow {
     }
 
     function reset() {
-        searchField.text = "";
+        if (searchField.text !== "") {
+            searchField.text = "";
+        }
         content.focus = true;
     }
 
@@ -100,13 +102,7 @@ Kicker.DashboardWindow {
     mainItem: Item {
         id: mainContainer
         anchors.fill: parent
-        opacity: 0
-
-        Behavior on opacity {
-            NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
-        }
-
-        Component.onCompleted: opacity = 1
+        opacity: 1
 
         MouseArea {
             id: rootMouseArea
@@ -262,7 +258,7 @@ Kicker.DashboardWindow {
                 id: appsGridView
                 anchors.fill: parent
                 visible: !searching && appsModel.count > 0
-                enabled: visible
+                enabled: !searching && visible && root.visible
                 focus: !searching
 
                 iconSize: plasmoid.configuration.appIconSize
