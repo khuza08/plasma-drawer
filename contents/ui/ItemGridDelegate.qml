@@ -44,18 +44,18 @@ Item {
     readonly property var directoryModel: isDirectory ? (pagedSourceModel || GridView.view.model).modelForRow(absoluteIndex) : undefined
 
     // For this widget, the only favoritable actions should be system actions
-    readonly property bool isSystemAction: (model.favoriteId 
+    readonly property bool isSystemAction: (model && model.favoriteId 
                                             && GridView.view.model.favoritesModel 
                                             && GridView.view.model.favoritesModel.enabled) ?? false
 
-    readonly property int itemIndex: model.index
-    readonly property url url: model.url != undefined ? model.url : ""
+    readonly property int itemIndex: model.index ?? -1
+    readonly property url url: (model && model.url !== undefined) ? model.url : ""
     property bool pressed: false
 
     Accessible.role: Accessible.MenuItem
-    Accessible.name: model.display
+    Accessible.name: model.display ?? ""
 
-    readonly property bool hasActionList: ((("hasActionList" in model) && (model.hasActionList == true))
+    readonly property bool hasActionList: (((model && "hasActionList" in model) && (model.hasActionList == true))
                                            || isSystemAction)
     
     function getActionList() {
@@ -95,7 +95,7 @@ Item {
                 width: parent.width
                 height: parent.height
                 animated: false
-                source: model.decoration + (forceSymbolicIcons ? "-symbolic" : "")
+                source: (model ? model.decoration : "") + (forceSymbolicIcons ? "-symbolic" : "")
                 roundToIconSize: width > Kirigami.Units.iconSizes.huge ? false : true
                 isMask: iconColorOverride !== undefined
                 color: iconColorOverride ?? "transparent"
@@ -135,7 +135,7 @@ Item {
                         anchors.centerIn: parent
 
                         animated: false
-                        source: model.decoration + (forceSymbolicIcons ? "-symbolic" : "")
+                        source: (model ? model.decoration : "") + (forceSymbolicIcons ? "-symbolic" : "")
                         roundToIconSize: width > Kirigami.Units.iconSizes.medium ? false : true
                     }
                 }
@@ -164,7 +164,7 @@ Item {
         elide: Text.ElideRight
         wrapMode: Text.NoWrap
 
-        text: model.display
+        text: model.display ?? ""
         color: drawerTheme.textColor
     }
 

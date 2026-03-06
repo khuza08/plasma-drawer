@@ -30,16 +30,8 @@ FocusScope {
         return null;
     }
 
-    // Debounce building results to batch rapid model updates from different runners
-    Timer {
-        id: updateTimer
-        interval: 50
-        repeat: false
-        onTriggered: buildFlatResults()
-    }
-
     function requestUpdate() {
-        updateTimer.restart()
+        buildFlatResults()
     }
 
     // Build flat array from all runner results with tiered sorting
