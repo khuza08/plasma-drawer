@@ -139,32 +139,6 @@ FocusScope {
         anchors.fill: parent
     }
 
-    Row {
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        spacing: Kirigami.Units.smallSpacing
-
-        Repeater {
-            model: totalPages
-
-            Rectangle {
-                width: 10
-                height: 10
-                radius: 5
-                color: index === currentPage ? Kirigami.Theme.highlightColor : Kirigami.Theme.textColor
-                opacity: index === currentPage ? 1.0 : 0.3
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        currentPage = index
-                        updatePage()
-                    }
-                }
-            }
-        }
-    }
-
     onCurrentPageChanged: {
         updatePage()
     }
