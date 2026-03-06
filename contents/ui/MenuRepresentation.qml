@@ -185,8 +185,17 @@ Kicker.DashboardWindow {
             placeholderText: i18n("Search")
             placeholderTextColor: drawerTheme.softTextColor
 
+            Timer {
+                id: searchDebounceTimer
+                interval: 150
+                repeat: false
+                onTriggered: {
+                    runnerModel.query = searchField.text;
+                }
+            }
+
             onTextChanged: {
-                runnerModel.query = text;
+                searchDebounceTimer.restart();
             }
 
             background: Rectangle {

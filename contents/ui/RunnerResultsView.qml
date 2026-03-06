@@ -31,6 +31,18 @@ FocusScope {
     implicitWidth: numberColumns * cellSizeWidth
     implicitHeight: numberRows * cellSizeHeight
 
+    // Debounce building results to batch rapid model updates from different runners
+    Timer {
+        id: updateTimer
+        interval: 50
+        repeat: false
+        onTriggered: buildFlatResults()
+    }
+
+    function requestUpdate() {
+        updateTimer.restart()
+    }
+
     // Build flat array from all runner results
     function buildFlatResults() {
         if (!model) {
@@ -40,7 +52,6 @@ FocusScope {
 
         let highPriority = []
         let mediumPriority = []
-        let lowPriority = []
 
         let lowerQuery = query.toLowerCase()
 
@@ -51,9 +62,14 @@ FocusScope {
                     let display = rowModel.data(rowModel.index(j, 0), Qt.DisplayRole) || ""
                     let lowerDisplay = display.toLowerCase()
                     
+                    // Pre-fetch decoration to avoid repeated C++ calls
+                    let decoration = rowModel.data(rowModel.index(j, 0), Qt.DecorationRole)
+
                     let item = {
                         model: rowModel,
-                        index: j
+                        index: j,
+                        display: display,
+                        decoration: decoration
                     }
 
                     if (query !== "") {
@@ -62,7 +78,6 @@ FocusScope {
                         } else if (lowerDisplay.includes(lowerQuery)) {
                             mediumPriority.push(item)
                         }
-                        // Items that don't contain the query in the name are now ignored entirely
                     } else {
                         highPriority.push(item)
                     }
@@ -70,18 +85,17 @@ FocusScope {
             }
         }
         
-        allResults = [...highPriority, ...mediumPriority, ...lowPriority]
+        allResults = [...highPriority, ...mediumPriority]
         currentPage = 0
-        updatePage()
     }
 
-    onModelChanged: buildFlatResults()
-    onQueryChanged: buildFlatResults()
+    onModelChanged: requestUpdate()
+    onQueryChanged: requestUpdate()
 
     Connections {
         target: model
-        function onCountChanged() { buildFlatResults() }
-        function onModelReset() { buildFlatResults() }
+        function onCountChanged() { requestUpdate() }
+        function onModelReset() { requestUpdate() }
     }
 
     Component.onCompleted: {
@@ -90,77 +104,41 @@ FocusScope {
 
     property int currentIndex: -1
 
-    function updatePage() {
-        pageContainer.children = []
-        pageComponent.createObject(pageContainer, {page: currentPage})
-    }
+    GridView {
+        id: resultsGrid
+        anchors.fill: parent
+        cellWidth: cellSizeWidth
+        cellHeight: cellSizeHeight
+        interactive: false
+        
+        // Only show current page
+        model: allResults.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
-    Component {
-        id: pageComponent
+        delegate: Item {
+            width: resultsGrid.cellWidth
+            height: resultsGrid.cellHeight
 
-        Item {
-            id: pageItem
-            property int page: 0
-            anchors.fill: parent
+            readonly property int itemIndex: index + (currentPage * itemsPerPage)
+            
+            RunnerGridDelegate {
+                anchors.fill: parent
+                iconSize: searchResults.iconSize
+                modelProxy: modelData
+                isCurrentItem: itemIndex === currentIndex
+            }
 
-            Repeater {
-                model: Math.min(itemsPerPage, allResults.length - (pageItem.page * itemsPerPage))
-
-                Rectangle {
-                    property int itemIndex: index + (pageItem.page * itemsPerPage)
-                    property var itemData: itemIndex < allResults.length ? allResults[itemIndex] : null
-
-                    readonly property int row: Math.floor(index / numberColumns)
-                    readonly property int col: index % numberColumns
-
-                    x: col * cellSizeWidth
-                    y: row * cellSizeHeight
-                    width: cellSizeWidth
-                    height: cellSizeHeight
-
-                    color: "transparent"
-
-                    QtObject {
-                        id: modelProxy
-                        property var item: itemData
-                        property string display: itemData && itemData.model ? (itemData.model.data(itemData.model.index(itemData.index, 0), Qt.DisplayRole) || "") : ""
-                        property var decoration: itemData && itemData.model ? itemData.model.data(itemData.model.index(itemData.index, 0), Qt.DecorationRole) : ""
-                    }
-
-                    RunnerGridDelegate {
-                        anchors.fill: parent
-                        iconSize: searchResults.iconSize
-                        modelProxy: modelProxy
-                        isCurrentItem: itemIndex === currentIndex
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            currentIndex = itemIndex
-                            if (itemData) {
-                                itemData.model.trigger(itemData.index, "", null)
-                                root.toggle()
-                            }
-                        }
-                    }
-
-                    Component.onCompleted: {
-                        console.log("Item:", itemIndex, "display:", modelProxy.display, "icon:", modelProxy.decoration)
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                onClicked: {
+                    currentIndex = itemIndex
+                    if (modelData && modelData.model) {
+                        modelData.model.trigger(modelData.index, "", null)
+                        root.toggle()
                     }
                 }
             }
         }
-    }
-
-    Item {
-        id: pageContainer
-        anchors.fill: parent
-    }
-
-    onCurrentPageChanged: {
-        updatePage()
     }
 
     Keys.onPressed: (event) => {
@@ -181,14 +159,12 @@ FocusScope {
                 currentIndex--
             } else if (currentPage > 0) {
                 currentPage--
-                updatePage()
             }
         } else if (event.key === Qt.Key_Right) {
             if (currentIndex < allResults.length - 1 && (currentIndex + 1) % numberColumns !== 0) {
                 currentIndex++
             } else if (currentPage < totalPages - 1) {
                 currentPage++
-                updatePage()
             }
         } else if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
             if (currentIndex !== -1 && currentIndex < allResults.length) {
