@@ -291,7 +291,7 @@ Kicker.DashboardWindow {
                         numberColumns: plasmoid.configuration.searchMaxColumns
                         numberRows: plasmoid.configuration.searchMaxRows
 
-                        iconSize: plasmoid.configuration.searchIconSize
+                        iconSize: plasmoid.configuration.appIconSize
                         shrinkIconsToNative: plasmoid.configuration.adaptiveSearchIconSize
 
                         model: runnerModel

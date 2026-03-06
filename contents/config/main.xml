@@ -96,8 +96,8 @@
       <default>true</default>
     </entry>
     <entry name="searchIconSize" type="Int">
-      <label>The size of the icons in the search results list. If adaptiveSearchIconSize is true, this value specifies the max value.</label>
-      <default>48</default>
+      <label>The size of the icons in the search results grid. Note: This is now synced with appIconSize.</label>
+      <default>96</default>
     </entry>
     <entry name="adaptiveSearchIconSize" type="Bool">
       <label>Determines whether the icons in the search results list should be shrunk to match their native resolution.</label>
