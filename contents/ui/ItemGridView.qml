@@ -116,7 +116,7 @@ FocusScope {
     function trigger(index) {
         let absoluteIndex = index + indexOffset;
         let modelToUse = sourceModel || gridView.model;
-        
+
         let rowModel = modelToUse.modelForRow(absoluteIndex);
         if (rowModel != null) {
             requestDirectoryEntry(absoluteIndex);
@@ -136,7 +136,7 @@ FocusScope {
         property int targetIndex: -1
 
         visualParent: gridView
-        
+
         onActionClicked: function (actionId, actionArgument) {
             var closeRequested = Tools.triggerAction(plasmoid, model, targetIndex, actionId, actionArgument);
             if (closeRequested) {
@@ -162,7 +162,8 @@ FocusScope {
 
         width: numberColumns * cellWidth
         height: (maxVisibleRows == -1 ? numberRows : maxVisibleRows) * cellHeight
-        anchors.centerIn: parent
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
 
         onDragMove: function (event) {
             var cPos = mapToItem(gridView.contentItem, event.x, event.y);
@@ -177,7 +178,8 @@ FocusScope {
             id: scrollView
             width: (numberColumns * cellWidth) + ScrollBar.vertical.width
             height: Math.min(parent.height, numberRows * cellHeight)
-            anchors.centerIn: parent
+            anchors.top: parent.top
+            anchors.horizontalCenter: parent.horizontalCenter
 
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
             ScrollBar.vertical.interactive: true
@@ -269,7 +271,7 @@ FocusScope {
                         event.accepted = true;
                         openActionMenu(currentItem.x, currentItem.y, currentItem.getActionList());
                         return;
-                    } 
+                    }
                     if ((event.key == Qt.Key_Enter || event.key == Qt.Key_Return && currentIndex != -1)) {
                         event.accepted = true;
                         itemGrid.trigger(currentIndex);
@@ -293,7 +295,7 @@ FocusScope {
                         }
                         return;
                     }
-                    
+
                     if (event.key == Qt.Key_PageDown) {
                         if (currentIndex == -1) {
                             currentIndex = 0;
@@ -415,7 +417,7 @@ FocusScope {
 
                         var cPos = mapToItem(gridView.contentItem, mouse.x, mouse.y);
                         var index = gridView.indexAt(cPos.x, cPos.y);
-                        
+
                         if (index !== gridView.currentIndex) {
                             gridView.currentIndex = index;
                             itemGrid.focus = true;
