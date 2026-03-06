@@ -40,7 +40,7 @@ FocusScope {
                 let origin = Qt.point(0, 0);
                 let item = currentItemGrid.itemAtIndex(directoryIndex % itemsPerPage);
                 if (item) {
-                    origin = Qt.point(  (item.x + (cellSizeWidth / 2)) - (currentItemGrid.width / 2), 
+                    origin = Qt.point(  (item.x + (cellSizeWidth / 2)) - (currentItemGrid.width / 2),
                                         (item.y + (cellSizeHeight / 2)) - (currentItemGrid.height / 2) - currentItemGrid.contentY )
                 }
                 stackView.push(pagedGridView, {model: dir, origin: origin});
@@ -82,7 +82,7 @@ FocusScope {
     // Root Paging Component
     Component {
         id: pagedGridView
-        
+
         FocusScope {
             id: pagedViewRoot
             anchors.fill: parent
@@ -90,7 +90,7 @@ FocusScope {
             property alias viewSwipeView: viewSwipeView
             property var origin: Qt.point(0, 0)
             focus: true
-            
+
             readonly property int pageItemsCount: Math.max(1, appsGrid.numberColumns * appsGrid.numberRows)
             readonly property int pageTotalCount: {
                 let count = (model ? model.count : 0);
@@ -103,7 +103,7 @@ FocusScope {
                 clip: true
                 focus: true
                 interactive: true
-                
+
                 Keys.onLeftPressed: (event) => {
                     if (currentIndex > 0) {
                         decrementCurrentIndex();
@@ -128,15 +128,15 @@ FocusScope {
 
                 Repeater {
                     model: pagedViewRoot.pageTotalCount
-                    
+
                     ItemGridView {
                         id: pagedGrid
                         width: viewSwipeView.width
                         height: viewSwipeView.height
                         focus: true
-                        
+
                         property int pageIndex: index
-                        
+
                         numberColumns: appsGrid.numberColumns
                         maxVisibleRows: appsGrid.numberRows
 
@@ -152,18 +152,18 @@ FocusScope {
                         model: KItemModels.KSortFilterProxyModel {
                             sourceModel: pagedViewRoot.model
                             filterRowCallback: (sourceRow, sourceParent) => {
-                                return sourceRow >= (pageIndex * pagedViewRoot.pageItemsCount) && 
+                                return sourceRow >= (pageIndex * pagedViewRoot.pageItemsCount) &&
                                        sourceRow < ((pageIndex + 1) * pagedViewRoot.pageItemsCount);
                             }
                         }
-                        
+
                         dragEnabled: false
                         hoverEnabled: true
-                        
+
                         onKeyNavUp: appsGrid.keyNavUp()
                         onKeyNavDown: appsGrid.keyNavDown()
                         onRequestDirectoryEntry: (absoluteIndex) => appsGrid.tryEnterDirectory(absoluteIndex)
-                        
+
                         onKeyNavLeft: {
                             if (viewSwipeView.currentIndex > 0) {
                                 viewSwipeView.decrementCurrentIndex();
@@ -183,7 +183,7 @@ FocusScope {
                     }
                 }
             }
-            
+
             PageIndicator {
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -208,11 +208,11 @@ FocusScope {
     StackView {
         id: stackView
         initialItem: pagedGridView
-        
+
         implicitWidth: appsGrid.implicitWidth
         implicitHeight: appsGrid.implicitHeight
         anchors.top: parent.top
-        anchors.bottom: parent.bottom 
+        anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
 
@@ -231,66 +231,24 @@ FocusScope {
         Transition {
             id: pushEnterTransition
 
-            NumberAnimation { 
-                property: "x"; 
-                from: pushEnterTransition.ViewTransition.item.origin ? pushEnterTransition.ViewTransition.item.origin.x : 0
-                to: 0
-                duration: stackView.transitionDuration
-                easing.type: Easing.OutCubic
-            }
-
             NumberAnimation {
-                property: "y"
-                from: pushEnterTransition.ViewTransition.item.origin ? pushEnterTransition.ViewTransition.item.origin.y : 0
-                to: 0
-                duration: stackView.transitionDuration
-                easing.type: Easing.OutCubic
+                property: "opacity"; from: 0; to: 1.0; duration: stackView.transitionDuration * 0.5
             }
-            
-            NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: stackView.transitionDuration * .5 }
-            NumberAnimation { property: "scale"; from: 0; to: 1.0; duration: stackView.transitionDuration; easing.type: Easing.OutCubic }
         }
 
         Transition {
             id: pushExitTransition
-            NumberAnimation { property: "y"; from: 0; to: -(appsGrid.iconSize * .5); duration: stackView.transitionDuration; easing.type: Easing.OutCubic }
-            NumberAnimation { property: "opacity"; from: 1.0; to: 0; duration: stackView.transitionDuration * .5; easing.type: Easing.OutCubic }
-            NumberAnimation { property: "scale"; from: 1.0; to: 0.8; duration: stackView.transitionDuration * .5; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0; duration: stackView.transitionDuration * 0.5 }
         }
 
         Transition {
             id: popEnterTransition
-           
-            SequentialAnimation {
-                PauseAnimation { duration: stackView.transitionDuration * .2 }
-                ParallelAnimation {
-                    NumberAnimation { property: "y"; from: -(appsGrid.iconSize * .5); to: 0; duration: stackView.transitionDuration; easing.type: Easing.OutCubic }
-                    NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: stackView.transitionDuration * .5; easing.type: Easing.OutCubic }
-                    NumberAnimation { property: "scale"; from: 0.8; to: 1.0; duration: stackView.transitionDuration; easing.type: Easing.OutCubic }
-                }
-            }
+            NumberAnimation { property: "opacity"; from: 0; to: 1.0; duration: stackView.transitionDuration * 0.5 }
         }
 
         Transition {
             id: popExitTransition
-            NumberAnimation {
-                property: "x"
-                from: 0
-                to: popExitTransition.ViewTransition.item.origin ? popExitTransition.ViewTransition.item.origin.x : 0
-                duration: stackView.transitionDuration * 1.5
-                easing.type: Easing.OutCubic
-            }
-
-            NumberAnimation {
-                property: "y"
-                from: 0
-                to: popExitTransition.ViewTransition.item.origin ? popExitTransition.ViewTransition.item.origin.y : 0
-                duration: stackView.transitionDuration * 1.5
-                easing.type: Easing.OutCubic
-            }
-            
-            NumberAnimation { property: "opacity"; from: 1.0; to: 0; duration: stackView.transitionDuration * .75; easing.type: Easing.OutQuint }
-            NumberAnimation { property: "scale"; from: 1.0; to: 0; duration: stackView.transitionDuration * 1.5; easing.type: Easing.OutCubic }
+            NumberAnimation { property: "opacity"; from: 1.0; to: 0; duration: stackView.transitionDuration * 0.5 }
         }
 
         Transition {
