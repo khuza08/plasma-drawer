@@ -152,6 +152,23 @@ FocusScope {
         focus: true
         interactive: true
 
+        WheelHandler {
+            property int wheelDelta: 0
+            onWheel: (event) => {
+                // Accumulate delta to handle smooth scrolling touchpads
+                wheelDelta += event.rotation.x;
+                if (Math.abs(wheelDelta) >= 20) {
+                    if (wheelDelta > 0 && viewSwipeView.currentIndex > 0) {
+                        viewSwipeView.decrementCurrentIndex();
+                        wheelDelta = 0;
+                    } else if (wheelDelta < 0 && viewSwipeView.currentIndex < viewSwipeView.count - 1) {
+                        viewSwipeView.incrementCurrentIndex();
+                        wheelDelta = 0;
+                    }
+                }
+            }
+        }
+
         onCurrentIndexChanged: {
             if (currentItem) {
                 currentItem.forceActiveFocus();
@@ -245,10 +262,10 @@ FocusScope {
         MouseArea {
             anchors.fill: parent
             onClicked: (mouse) => {
-                if (count > 0) {
-                    let dotWidth = width / count;
+                if (searchResults.pageTotalCount > 0) {
+                    let dotWidth = width / searchResults.pageTotalCount;
                     let index = Math.floor(mouse.x / dotWidth);
-                    viewSwipeView.currentIndex = Math.max(0, Math.min(index, count - 1));
+                    viewSwipeView.currentIndex = Math.max(0, Math.min(index, searchResults.pageTotalCount - 1));
                 }
             }
         }
