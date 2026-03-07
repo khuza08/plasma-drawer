@@ -14,7 +14,7 @@ FocusScope {
     // Layout properties passed from MenuRepresentation
     property int numberColumns: 8
     property int referenceColumns: 8
-    property int numberRows: 3
+    property int numberRows: 5
     property int referenceRows: 5
     
     property int iconSize: Kirigami.Units.iconSizes.large
