@@ -19,11 +19,49 @@ FocusScope {
     
     property int iconSize: Kirigami.Units.iconSizes.large
 
+    // Stabilize cell calculations by using root dimensions
+    readonly property int cellSizeWidth: Math.floor(width / referenceColumns)
+    readonly property int cellSizeHeight: Math.floor(height / referenceRows)
+
     property var model: null
     property string query: ""
 
     property var allResults: []
-    property int currentPage: 0
+    
+    readonly property int pageItemsCount: Math.max(1, numberColumns * numberRows)
+    readonly property int pageTotalCount: Math.max(1, Math.ceil(allResults.length / pageItemsCount))
+
+    readonly property var currentItemGrid: viewSwipeView.currentItem ? viewSwipeView.currentItem : null
+    readonly property var currentMatch: (currentItemGrid && currentItemGrid.currentIndex !== -1) ? allResults[internalIndex(currentItemGrid.currentIndex)] : null
+
+    function internalIndex(gridIndex) {
+        return gridIndex + (viewSwipeView.currentIndex * pageItemsCount);
+    }
+
+    function selectFirst() {
+        if (currentItemGrid) {
+            currentItemGrid.currentIndex = 0;
+        }
+    }
+
+    function triggerSelected() {
+        if (currentMatch) {
+            try {
+                if (currentMatch.runnerModel && typeof currentMatch.runnerModel.trigger === "function") {
+                    currentMatch.runnerModel.trigger(currentMatch.modelIndex, "", null);
+                    root.toggle();
+                }
+            } catch (e) {
+                console.error("Error triggering search result:", e);
+            }
+        }
+    }
+
+    function removeSelection() {
+        if (currentItemGrid) {
+            currentItemGrid.currentIndex = -1;
+        }
+    }
 
     // Satisfy ItemGridDelegate's expectation for directory model fetching
     function modelForRow(row) {
@@ -81,7 +119,7 @@ FocusScope {
         }
         
         allResults = [...highPriority, ...mediumPriority]
-        currentPage = 0
+        viewSwipeView.currentIndex = 0
     }
 
     onModelChanged: requestUpdate()
@@ -94,7 +132,6 @@ FocusScope {
     }
 
     // Internal list model to hold our flattened results
-    // dynamicRoles: true is CRITICAL because different runners return different types for 'decoration'
     ListModel {
         id: resultsListModel
         dynamicRoles: true
@@ -108,69 +145,112 @@ FocusScope {
         }
     }
 
-    // Proxy model to provide paged results to ItemGridView
-    property var resultsProxyModel: KItemModels.KSortFilterProxyModel {
-        sourceModel: resultsListModel
-        filterRowCallback: (sourceRow, sourceParent) => {
-            let itemsPerPage = numberColumns * numberRows;
-            return sourceRow >= (currentPage * itemsPerPage) &&
-                   sourceRow < ((currentPage + 1) * itemsPerPage);
-        }
-    }
-
-    ItemGridView {
-        id: internalGridView
-        
-        // Use fixed dimensions to prevent binding loops with implicitWidth
-        width: parent.width
-        height: parent.height
+    SwipeView {
+        id: viewSwipeView
+        anchors.fill: parent
+        clip: true
         focus: true
+        interactive: true
 
-        // Force the grid to match the reference sizing of the App Grid
-        cellWidth: Math.floor(width / referenceColumns)
-        cellHeight: Math.floor(height / referenceRows)
-        numberColumns: searchResults.numberColumns
-        
-        iconSize: searchResults.iconSize
-        
-        // Pass ourselves as sourceModel so ItemGridDelegate finds modelForRow()
-        sourceModel: searchResults
-        model: resultsProxyModel
-        
-        dragEnabled: false
+        onCurrentIndexChanged: {
+            if (currentItem) {
+                currentItem.forceActiveFocus();
+            }
+        }
 
-        onKeyNavUp: searchResults.keyNavUp()
-        onKeyNavDown: searchResults.keyNavDown()
+        Repeater {
+            model: searchResults.pageTotalCount
 
-        // Handle item triggering
-        function trigger(index) {
-            let itemsPerPage = numberColumns * numberRows;
-            let absoluteIndex = index + (currentPage * itemsPerPage);
-            if (absoluteIndex < allResults.length) {
-                let item = allResults[absoluteIndex];
-                try {
-                    if (item.runnerModel && typeof item.runnerModel.trigger === "function") {
-                        item.runnerModel.trigger(item.modelIndex, "", null);
-                        root.toggle();
+            ItemGridView {
+                id: pagedGrid
+                width: viewSwipeView.width
+                height: viewSwipeView.height
+                focus: true
+
+                property int pageIndex: index
+                // Explicitly capture the pageItemsCount to avoid undefined context in model callback
+                property int capturedPageItemsCount: searchResults.pageItemsCount
+
+                numberColumns: searchResults.numberColumns
+                maxVisibleRows: searchResults.numberRows
+
+                // Use the root-stabilized cell sizes to break the binding loop
+                cellWidth: searchResults.cellSizeWidth
+                cellHeight: searchResults.cellSizeHeight
+                iconSize: searchResults.iconSize
+
+                sourceModel: searchResults
+                indexOffset: pageIndex * capturedPageItemsCount
+                pageItemsCount: capturedPageItemsCount
+                verticalScrollBarPolicy: ScrollBar.AlwaysOff
+
+                model: KItemModels.KSortFilterProxyModel {
+                    sourceModel: resultsListModel
+                    filterRowCallback: (sourceRow, sourceParent) => {
+                        let pSize = pagedGrid.capturedPageItemsCount;
+                        let pIndex = pagedGrid.pageIndex;
+                        return sourceRow >= (pIndex * pSize) &&
+                               sourceRow < ((pIndex + 1) * pSize);
                     }
-                } catch (e) {
-                    console.error("Error triggering search result:", e);
+                }
+
+                dragEnabled: false
+                hoverEnabled: true
+
+                onKeyNavUp: searchResults.keyNavUp()
+                onKeyNavDown: searchResults.keyNavDown()
+
+                onKeyNavLeft: {
+                    if (viewSwipeView.currentIndex > 0) {
+                        viewSwipeView.decrementCurrentIndex();
+                    }
+                }
+                onKeyNavRight: {
+                    if (viewSwipeView.currentIndex < viewSwipeView.count - 1) {
+                        viewSwipeView.incrementCurrentIndex();
+                    }
+                }
+
+                function trigger(index) {
+                    let absoluteIndex = index + (pageIndex * capturedPageItemsCount);
+                    if (absoluteIndex < allResults.length) {
+                        let item = allResults[absoluteIndex];
+                        try {
+                            if (item.runnerModel && typeof item.runnerModel.trigger === "function") {
+                                item.runnerModel.trigger(item.modelIndex, "", null);
+                                root.toggle();
+                            }
+                        } catch (e) {
+                            console.error("Error triggering search result:", e);
+                        }
+                    }
+                }
+
+                Component.onCompleted: {
+                    if (pageIndex === viewSwipeView.currentIndex) {
+                        forceActiveFocus();
+                    }
                 }
             }
         }
     }
 
-    // Keyboard navigation for pages
-    Keys.onPressed: (event) => {
-        let itemsPerPage = numberColumns * numberRows;
-        let totalPages = Math.max(1, Math.ceil(allResults.length / itemsPerPage));
+    PageIndicator {
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        visible: searchResults.pageTotalCount > 1
+        currentIndex: viewSwipeView.currentIndex
+        count: searchResults.pageTotalCount
 
-        if (event.key === Qt.Key_Left && currentPage > 0 && internalGridView.currentIndex % numberColumns === 0) {
-            currentPage--;
-            event.accepted = true;
-        } else if (event.key === Qt.Key_Right && currentPage < totalPages - 1 && (internalGridView.currentIndex + 1) % numberColumns === 0) {
-            currentPage++;
-            event.accepted = true;
+        MouseArea {
+            anchors.fill: parent
+            onClicked: (mouse) => {
+                if (count > 0) {
+                    let dotWidth = width / count;
+                    let index = Math.floor(mouse.x / dotWidth);
+                    viewSwipeView.currentIndex = Math.max(0, Math.min(index, count - 1));
+                }
+            }
         }
     }
 

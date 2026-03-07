@@ -63,12 +63,14 @@ FocusScope {
     property alias flow: gridView.flow
     property alias snapMode: gridView.snapMode
 
+    property int verticalScrollBarPolicy: ScrollBar.AsNeeded
+
     property alias hoverEnabled: mouseArea.hoverEnabled
 
     property alias populateTransition: gridView.populate
 
-    // ScrollView needs additional space on the right for the scrollbar
-    implicitWidth: gridView.width + (scrollView.ScrollBar.vertical.visible ? scrollView.ScrollBar.vertical.width : 0)
+    // Break the binding loop by not depending on scrollView.width
+    implicitWidth: numberColumns * cellWidth
     implicitHeight: scrollView.height
 
     onFocusChanged: {
@@ -175,6 +177,7 @@ FocusScope {
             anchors.fill: parent
 
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical.policy: verticalScrollBarPolicy
             ScrollBar.vertical.interactive: true
 
             focus: true
