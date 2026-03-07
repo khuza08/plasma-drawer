@@ -163,6 +163,7 @@ Item {
 
         elide: Text.ElideRight
         wrapMode: Text.NoWrap
+        textFormat: Text.StyledText
 
         text: model.display ?? ""
         color: drawerTheme.textColor

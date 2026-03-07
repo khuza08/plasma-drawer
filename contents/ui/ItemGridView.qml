@@ -151,7 +151,7 @@ FocusScope {
     }
 
     function openActionMenu(x, y, actionList) {
-        if (actionList && "length" in actionList && actionList.length > 0) {
+        if (actionList && actionList.length !== undefined && actionList.length > 0) {
             actionMenu.actionList = actionList;
             actionMenu.targetIndex = currentIndex;
             actionMenu.open(x, y);
@@ -264,7 +264,8 @@ FocusScope {
                 Keys.onPressed: function (event) {
                     if (event.key == Qt.Key_Menu && currentItem && currentItem.hasActionList) {
                         event.accepted = true;
-                        openActionMenu(currentItem.x, currentItem.y, currentItem.getActionList());
+                        let localPos = currentItem.mapToItem(actionMenu, 0, 0);
+                        openActionMenu(localPos.x, localPos.y, currentItem.getActionList());
                         return;
                     }
                     if ((event.key == Qt.Key_Enter || event.key == Qt.Key_Return && currentIndex != -1)) {
@@ -343,7 +344,10 @@ FocusScope {
 
                         if (mouse.button == Qt.RightButton) {
                             if (gridView.currentItem && gridView.currentItem.hasActionList) {
-                                openActionMenu(mouse.x, mouse.y, gridView.currentItem.getActionList());
+                                // Mapping to the actionMenu itself (which is an Item) provides the 
+                                // local coordinates that ActionMenu.qml expects for its menu.open(x, y)
+                                let localPos = mapToItem(actionMenu, mouse.x, mouse.y);
+                                openActionMenu(localPos.x, localPos.y, gridView.currentItem.getActionList());
                             }
                         }
                     }

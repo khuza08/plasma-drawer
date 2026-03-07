@@ -14,7 +14,7 @@ FocusScope {
     // Layout properties passed from MenuRepresentation
     property int numberColumns: 8
     property int referenceColumns: 8
-    property int numberRows: 5
+    property int numberRows: 3
     property int referenceRows: 5
     
     property int iconSize: Kirigami.Units.iconSizes.large
@@ -63,6 +63,18 @@ FocusScope {
         }
     }
 
+    // Helper to highlight matching text
+    function highlightMatch(text, query) {
+        if (!query || query === "") return text;
+        let lowerText = text.toLowerCase();
+        let lowerQuery = query.toLowerCase();
+        let index = lowerText.indexOf(lowerQuery);
+        if (index >= 0) {
+            return text.substring(0, index) + "<b>" + text.substring(index, index + query.length) + "</b>" + text.substring(index + query.length);
+        }
+        return text;
+    }
+
     // Satisfy ItemGridDelegate's expectation for directory model fetching
     function modelForRow(row) {
         return null;
@@ -96,9 +108,12 @@ FocusScope {
 
                     // Pre-fetch decoration (can be String or VariantMap/QIcon)
                     let decoration = rowModel.data(rowModel.index(j, 0), Qt.DecorationRole)
+                    
+                    // Fetch KRunner actions for right-click support
+                    let actionList = rowModel.data(rowModel.index(j, 0), "actionList")
 
                     let item = {
-                        "display": display,
+                        "display": highlightMatch(display, query),
                         "decoration": decoration !== undefined ? decoration : "",
                         "runnerModel": rowModel,
                         "modelIndex": j,
@@ -106,7 +121,8 @@ FocusScope {
                         "hasChildren": false,
                         "url": "",
                         "favoriteId": "",
-                        "hasActionList": false
+                        "hasActionList": actionList !== undefined && actionList.length > 0,
+                        "actionList": actionList !== undefined ? actionList : []
                     }
 
                     if (query !== "" && lowerDisplay.startsWith(lowerQuery)) {
@@ -151,6 +167,7 @@ FocusScope {
         clip: true
         focus: true
         interactive: true
+        visible: allResults.length > 0
 
         WheelHandler {
             property int wheelDelta: 0
@@ -250,6 +267,16 @@ FocusScope {
                 }
             }
         }
+    }
+
+    // Empty state message
+    Label {
+        id: emptyStateLabel
+        anchors.centerIn: parent
+        text: i18n("No results found for '%1'", query)
+        visible: allResults.length === 0 && query !== ""
+        color: drawerTheme.softTextColor
+        font.pointSize: Kirigami.Theme.defaultFont.pointSize + 2
     }
 
     PageIndicator {
